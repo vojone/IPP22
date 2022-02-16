@@ -1,11 +1,11 @@
 <?php
 
     class Table {
-        private const PROLOG = array(
+        public const PROLOG = array(
             '.IPPcode22'
         );
 
-        private const OPERATION_CODES = array(
+        public const OPERATION_CODES = array(
             'MOVE', 'CREATEFRAME', 'PUSHFRAME', 'POPFRAME', 'DEFVAR', 
             'CALL', 'RETURN', 'PUSHS', 'POPS', 'ADD', 'SUB', 'MUL', 
             'IDIV', 'LT', 'GT', 'EQ', 'AND', 'OR', 'NOT', 'INT2CHAR', 
@@ -14,42 +14,31 @@
             'EXIT', 'DPRINT', 'BREAK'
         );
 
-        private const FRAME_CODES = array(
+        public const FRAME_CODES = array(
             'LF', 'GF', 'TF'
         );
 
-        private const TYPE_CODES = array(
-            'string', 'int', 'nil' 
+        public const TYPE_CODES = array(
+            'string', 'int', 'nil', 'bool'
         );
 
-        public static function isOpcode($str) {
-            foreach(self::OPERATION_CODES as $opCode) {
-                if(strtolower($opCode) === strtolower($str)) return true;
-            }
-
-            return false;
+        public static function searchInTab($tab, $str) {
+            return in_array($str, $tab);
         }
 
-        public static function isVariablePrefix($str) {
-            foreach(self::FRAME_CODES as $frameCode) {
-                if(strtolower($frameCode) === strtolower($str)) return true;
-            }
+        public static function aToRegex($arr) {
+            $regex = '';
 
-            return false;
-        }
-
-        public static function isLiteralPrefix($str, &$result) {
-            foreach(self::TYPE_CODES as $type) {
-                if(strtolower($type) === strtolower($str)) {
-                    $result = $type;
-
-                    return true;
+            foreach ($arr as $str) {
+                if($regex !== '') {
+                    $regex .= '|';
                 }
+
+                $regex .= $str;
             }
 
-            return false;
+            return $regex;
         }
-
     }
 
 ?>

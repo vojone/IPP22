@@ -2,9 +2,14 @@
     enum type {
         case OPCODE;
         case STR;
-        case IDENTIFIER;
-        case NEWLINE;
+        case LITERAL;
+        case TYPE;
+        case LABEL;
+        case VARIABLE;
         case PROLOG;
+        case ERROR;
+        case EOF;
+        case NEWLINE;
     }
 
     class Token {
