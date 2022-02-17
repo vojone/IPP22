@@ -3,6 +3,9 @@
         case OPCODE;
         case STR;
         case LITERAL;
+        case BOOL;
+        case INT;
+        case NIL;
         case TYPE;
         case LABEL;
         case VARIABLE;

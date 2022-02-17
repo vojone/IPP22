@@ -27,7 +27,7 @@
         }
 
         public static function aToRegex($arr) {
-            $regex = '';
+            $regex = '(';
 
             foreach ($arr as $str) {
                 if($regex !== '') {
@@ -36,6 +36,8 @@
 
                 $regex .= $str;
             }
+
+            $regex .= ')';
 
             return $regex;
         }

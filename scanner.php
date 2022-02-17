@@ -6,6 +6,7 @@
         case INIT;
         case COMMENT;
         case NEWLINE;
+        case WNEWLINE;
         case PROLOG;
         case DIRTY_TOKEN;
         case EOF;
@@ -70,7 +71,7 @@
             while($token === null) {
                 $nextState = null;
                 $currentCharacter = $this->getChar($isEOF);
-                
+            
                 switch($state) {
                     case state::INIT:
                         if($isEOF) {
@@ -88,19 +89,28 @@
                         else if(preg_match('/[a-z_\-$&%*!?]/i', $currentCharacter)) {
                             $nextState = state::DIRTY_TOKEN;
                         }
+                        else if(preg_match('/[\r]/', $currentCharacter)) {
+                            $nextState = state::WNEWLINE;
+                        }
                         else if(preg_match('/[\n]/', $currentCharacter)) {
                             $nextState = state::NEWLINE;
                         }
                         else {
-                            $token = $this->createToken(type::ERROR, null);
+                            $token = $this->createToken(type::ERROR, $inpString);
                         }
                       
                         break;
                     case state::COMMENT:
-                        if(preg_match('/[\n]/', $currentCharacter)) {
+                        if($isEOF) {
+                            $nextState = state::EOF;
+                        }
+                        else if(preg_match('/[\r]/', $currentCharacter)) {
+                            $nextState = state::WNEWLINE;
+                        }
+                        else if(preg_match('/[\n]/', $currentCharacter)) {
                             $nextState = state::NEWLINE;
                         }
-                        else if(!$isEOF) {
+                        else {
                             $nextState = state::COMMENT;
                         }
 
@@ -116,8 +126,14 @@
                                 $token = $this->createToken(type::PROLOG, null);
                             }
                             else {
-                                $token = $this->createToken(type::ERROR, null);
+                                $token = $this->createToken(type::ERROR, $inpString);
                             }
+                        }
+
+                        break;
+                    case state::WNEWLINE:
+                        if(preg_match('/[\n]/', $currentCharacter)) {
+                            $nextState = state::NEWLINE;
                         }
 
                         break;
@@ -127,16 +143,13 @@
 
                         break;
                     case state::DIRTY_TOKEN:
-                        if(!$isEOF && preg_match('/[a-z_\-$&%*!?@0-9]/i', $currentCharacter)) {
+                        if(!$isEOF && !preg_match('/[\s\\#]/', $currentCharacter)) {
                             $nextState = state::DIRTY_TOKEN;
                         }
                         else {
                             $this->toBuffer($currentCharacter);
 
                             $type = null;
-
-                            var_dump('/'.Table::aToRegex(Table::TYPE_CODES).'/');
-                            var_dump(preg_match('/'.Table::aToRegex(Table::TYPE_CODES).'/', $inpString));
                             if(Table::searchInTab(Table::OPERATION_CODES, $inpString)) {
                                 $type = type::OPCODE;
                             }
@@ -148,15 +161,15 @@
                             }
                             else if(preg_match('/^'.Table::aToRegex(Table::TYPE_CODES).'@.*$/', $inpString)) {
                                 if(preg_match('/^int@-?[0-9]+$/', $inpString)) {
-                                    $type = type::LITERAL;
+                                    $type = type::INT;
                                 }
                                 else if(preg_match('/^bool@(true|false)$/', $inpString)) {
-                                    $type = type::LITERAL;
+                                    $type = type::BOOL;
                                 }
                                 else if(preg_match('/^nil@nil$/', $inpString)) {
-                                    $type = type::LITERAL;
+                                    $type = type::NIL;
                                 }
-                                else if('/^string@([^\u0000-\u0020\s\\]|(\\[0-9]{3}))*$/u') {
+                                else if(preg_match('/^(string@([^\x{0000}-\x{0020}\s\\\]|(\\\[0-9]{3}))*)$/u', $inpString)) {
                                     $type = type::STR;
                                 }
                                 else {
@@ -182,7 +195,7 @@
                 }
 
                 if($nextState === null && $token === null) {
-                    $token = $this->createToken(type::ERROR, null);
+                    $token = $this->createToken(type::ERROR, $inpString);
                     break;
                 }
                 else {
