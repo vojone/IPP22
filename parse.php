@@ -10,5 +10,4 @@
     $ret = $parser->parse();
 
     exit($ret);
-
 ?>

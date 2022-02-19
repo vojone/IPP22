@@ -29,7 +29,13 @@
         );
 
         public static function searchInTab($tab, $str) {
-            return array_key_exists($str, $tab);
+            foreach($tab as $key => $element) {
+                if(strtoupper($str) === strtoupper($key)) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         public static function aToRegex($arr) {

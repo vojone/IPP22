@@ -13,17 +13,24 @@
 
         private $reachedEOF;
 
+        private $logStream;
+
+        private $xml;
+
         function __construct($input) {
             $this->scanner = new Scanner($input);
-            $reachedEOF = false;
-            $tokenBuffer = null;
+            $this->reachedEOF = false;
+            $this->tokenBuffer = null;
+
+            $this->log = fopen('php://stderr', 'a');
+            $this->out = fopen('php://stdout', 'w');
         }
 
         private function printErrorMessage($type, $content) {
             $curPos = $this->scanner->getCursorPosition();
 
-            echo "({$curPos['ROW']}, {$curPos['COL']})\t";
-            echo "\033[31m{$type}\033[0m : {$content}\n";
+            fwrite($this->log, "({$curPos['ROW']}, {$curPos['COL']})\t");
+            fwrite($this->log, "\033[31m{$type}\033[0m : {$content}\n");
         }
 
         private function isBufferEmpty() {
@@ -91,16 +98,40 @@
                 return false;
             }
 
+            xmlwriter_start_element($this->xml, 'instruction');
+            xmlwriter_start_attribute($this->xml, 'opcode');
+            xmlwriter_text($this->xml, strtoupper($op->getVal()));
+            xmlwriter_end_attribute($this->xml);
+
             $argNum = strlen(Table::OPERATION_CODES[$op->getVal()]);
-            while($argNum > 0) {
+            for($i = 1; $i <= $argNum; $i++) {
                 $token = null;
                 if(!$this->checkNext($token, false, type::LABEL, type::VARIABLE, type::TYPE, type::STR, type::INT, type::BOOL, type::NIL)) {
+
                     $this->printErrorMessage('Syntax error', "Argument expected, got: '{$token->getVal()}'");
                     return false;
                 }
 
-                $argNum--;
+                xmlwriter_start_element($this->xml, "arg{$i}");
+                xmlwriter_start_attribute($this->xml, 'type');
+                xmlwriter_text($this->xml, 'var');
+                xmlwriter_end_attribute($this->xml);
+
+                $tokenValue = $token->getVal();
+                $argValue = null;
+                if(strpos($tokenValue, '@') !== false) {
+                    $argValue = substr($tokenValue, strpos($tokenValue, '@'));
+                }
+                else {
+                    $argValue = $tokenValue;
+                }
+                
+                xmlwriter_text($this->xml, htmlspecialchars($argValue, ENT_XML1, 'UTF-8'));
+
+                xmlwriter_end_element($this->xml);
             }
+
+            xmlwriter_end_element($this->xml);
 
             return true;
         }
@@ -130,6 +161,13 @@
             $token = null;
             $foundEOF = false;
 
+            $this->xml = xmlwriter_open_memory();
+            xmlwriter_set_indent($this->xml, 1);
+            xmlwriter_set_indent_string($this->xml, "\t");
+
+            xmlwriter_start_document($this->xml, '1.0', 'UTF-8');
+
+
             $this->skipNewlines();
             if($this->reachedEOF) {
                 return PARSE_SUCCESS;
@@ -145,12 +183,23 @@
                 return PARSE_SUCCESS;
             }
 
+            xmlwriter_start_element($this->xml, 'program');
+            xmlwriter_start_attribute($this->xml, 'language');
+            xmlwriter_text($this->xml, 'IPPcode22');
+            xmlwriter_end_attribute($this->xml);
+
             $retCode = PARSE_SUCCESS;
             while($this->checkOperation($token, $retCode)) {
                 if($this->reachedEOF) {
                     break;
                 }
             }
+
+            xmlwriter_end_element($this->xml);
+
+            xmlwriter_end_document($this->xml);
+
+            echo xmlwriter_output_memory($this->xml);
 
             return $retCode;
         }
