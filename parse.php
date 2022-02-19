@@ -1,17 +1,14 @@
 <?php
     ini_set('display_errors', 'stderr');
 
-    require_once 'scanner.php';
+    require_once 'parser.php';
 
     $stdin = fopen('php://stdin', 'r');
 
-    $scanner = new Scanner($stdin);
+    $parser = new Parser($stdin);
 
-    $token = null;
-    do {
-        $token = $scanner->nextToken();
-        var_dump($token);
-    }
-    while($token->getType() !== type::EOF)
+    $ret = $parser->parse();
+
+    exit($ret);
 
 ?>

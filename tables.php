@@ -6,12 +6,18 @@
         );
 
         public const OPERATION_CODES = array(
-            'MOVE', 'CREATEFRAME', 'PUSHFRAME', 'POPFRAME', 'DEFVAR', 
-            'CALL', 'RETURN', 'PUSHS', 'POPS', 'ADD', 'SUB', 'MUL', 
-            'IDIV', 'LT', 'GT', 'EQ', 'AND', 'OR', 'NOT', 'INT2CHAR', 
-            'STRI2INT', 'READ', 'WRITE', 'CONCAT', 'STRLEN', 'GETCHAR', 
-            'SETCHAR', 'TYPE', 'LABEL', 'JUMP', 'JUMPIFEQ', 'JUMPIFNEQ', 
-            'EXIT', 'DPRINT', 'BREAK'
+            'MOVE' => 'vs', 'CREATEFRAME' => '', 'PUSHFRAME' => '',
+            'POPFRAME' => '', 'DEFVAR' => 'v', 'CALL' => 'l', 
+            'RETURN' => '', 'PUSHS' => 's', 'POPS' => 'v', 
+            'ADD' => 'vss', 'SUB' => 'vss', 'MUL' => 'vss', 
+            'IDIV' => 'vss', 'LT' => 'vss', 'GT' => 'vss', 
+            'EQ' => 'vss', 'AND' => 'vss', 'OR' => 'vss', 
+            'NOT' => 'vss', 'INT2CHAR' => 'vs', 'STRI2INT' => 'vss', 
+            'READ' => 'vt', 'WRITE' => 's', 'CONCAT' => 'vss', 
+            'STRLEN' => 'vs', 'GETCHAR' => 'vss', 'SETCHAR' => 'vss', 
+            'TYPE' => 'vs', 'LABEL' => 'l', 'JUMP' => 'l', 
+            'JUMPIFEQ' => 'lss', 'JUMPIFNEQ' => 'lss', 'EXIT' => 's', 
+            'DPRINT' => 's', 'BREAK' => ''
         );
 
         public const FRAME_CODES = array(
@@ -23,7 +29,7 @@
         );
 
         public static function searchInTab($tab, $str) {
-            return in_array($str, $tab);
+            return array_key_exists($str, $tab);
         }
 
         public static function aToRegex($arr) {

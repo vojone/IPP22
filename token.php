@@ -23,7 +23,7 @@
             $this->type = $newType;
         }
 
-        public function setValue($newValue) {
+        public function setVal($newValue) {
             $this->value = $newValue;
         }
 
@@ -31,8 +31,16 @@
             return $this->type;
         }
 
-        public function getValue() {
-            return $this->value;
+        public function getVal() {
+            if($this->type == type::EOF) {
+                return 'EOF';
+            }
+            else if($this->type == type::NEWLINE) {
+                return 'NEWLINE';
+            }
+            else {
+                return $this->value;
+            }
         }
     }
 ?>
