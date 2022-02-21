@@ -2,7 +2,6 @@
     enum type {
         case OPCODE;
         case STR;
-        case LITERAL;
         case BOOL;
         case INT;
         case NIL;
@@ -42,5 +41,6 @@
                 return $this->value;
             }
         }
+
     }
 ?>

@@ -1,31 +1,78 @@
 <?php
-    require_once 'scanner.php';
+    /**************************************************************************
+     *                                  IPP project                           *  
+     *                                  parser.php                           *
+     *                                                                        *
+     *                                 Vojtech Dvorak                         *
+     *                                 February 2022                          *
+     *************************************************************************/
 
+
+    require_once 'scanner.php';
+    require_once 'printer.php';
+    require_once 'token.php';
+
+    //Return codes of the parser
     define('PARSE_SUCCESS', 0);
     define('INVALID_PROLOG', 21);
     define('INVALID_OPCODE', 22);
     define('OTHER_ERROR', 23);
 
+    /**
+     * Parses given program in source language and prints XML output
+     */
     class Parser {
+        /**
+         * Scanner object, that provides tokens to parser
+         */
         private $scanner;
 
+        /**
+         * Printer object, that is used for creating target XML
+         */
+        private $printer;
+
+        /**
+         * Temporary storage for one token
+         */
         private $tokenBuffer;
 
+        /**
+         * Flag, that indicates end of input file
+         */
         private $reachedEOF;
 
+        /**
+         * File pointer to a file, where will be printed error messages 
+         */
         private $logStream;
 
-        private $xml;
+        /**
+         * Instruction counter
+         */
+        private $insOrd;
 
-        function __construct($input) {
+        /**
+         * @param FilePointer $input File pointer to a file with source code
+         * @param FilePointer $output File pointer to a file, where should be printed target representation
+         */
+        function __construct($input, $output) {
             $this->scanner = new Scanner($input);
+
+            $this->printer = new XMLPrinter($output, "\t", 1);
+
             $this->reachedEOF = false;
             $this->tokenBuffer = null;
+            $this->insOrd = 1;
 
             $this->log = fopen('php://stderr', 'a');
-            $this->out = fopen('php://stdout', 'w');
         }
 
+        /**
+         * Prints error message to $log
+         * @param String $type Highlighted prefix of error message
+         * @param STring $content Content of the error message
+         */
         private function printErrorMessage($type, $content) {
             $curPos = $this->scanner->getCursorPosition();
 
@@ -33,14 +80,24 @@
             fwrite($this->log, "\033[31m{$type}\033[0m : {$content}\n");
         }
 
+        /**
+         * Check whether token buffer is empty or not
+         */
         private function isBufferEmpty() {
             return $this->tokenBuffer === null;
         }
 
+        /**
+         * Puts given tokn to token buffer
+         * @param Token $token
+         */
         private function toBuffer($token) {
             $this->tokenBuffer = $token;
         }
 
+        /**
+         * Takes one next token from buffer or from input and check its validity
+         */
         private function getNextToken() {
             $token = null;
 
@@ -61,6 +118,13 @@
             return $token;
         }
 
+        /**
+         * Check type of the next token
+         * @param Token $token Returns check token trhough it
+         * @param Bool $canBeEOF Flag indicates whether check is EOF tolerant or not
+         * @param Array $expTypes Array of all expected (possible) token types
+         * @return Bool True if type corresponds at least with one expected type (or it is EOF and EOF fag is true)
+         */
         private function checkNext(&$token, $canBeEOF, ...$expTypes) {
             $token = $this->getNextToken();
             $type = $token->getType();
@@ -82,6 +146,12 @@
             return false;
         }
 
+        /**
+         * Checks whether next token is valid instruction (line with instruction and ts arguments)
+         * @param Token $op Returns read instruction token through it
+         * @param Int $retCode Specifies error though it
+         * @return Bool True if valid instruction with arguments was read
+         */
         private function checkOperation(&$op, &$retCode) {
             if(!$this->checkNewline()) {
                 $retCode = OTHER_ERROR;
@@ -98,44 +168,57 @@
                 return false;
             }
 
-            xmlwriter_start_element($this->xml, 'instruction');
-            xmlwriter_start_attribute($this->xml, 'opcode');
-            xmlwriter_text($this->xml, strtoupper($op->getVal()));
-            xmlwriter_end_attribute($this->xml);
 
-            $argNum = strlen(Table::OPERATION_CODES[$op->getVal()]);
+            $this->printer->startInstruction($op->getVal(), $this->insOrd);
+
+            $expArgs = Table::OPERATION_CODES[$op->getVal()];
+            $argNum = strlen($expArgs);
             for($i = 1; $i <= $argNum; $i++) {
                 $token = null;
-                if(!$this->checkNext($token, false, type::LABEL, type::VARIABLE, type::TYPE, type::STR, type::INT, type::BOOL, type::NIL)) {
 
-                    $this->printErrorMessage('Syntax error', "Argument expected, got: '{$token->getVal()}'");
+                $possibleTokens = Table::charToTypes($expArgs[$i - 1]);
+                $isOk = false;
+
+                $token = $this->getNextToken();
+                foreach($possibleTokens as $possibleToken) {
+                    if($token->getType() === $possibleToken) {
+                        $isOk = true;
+                        break;
+                    }
+                }
+
+                if(!$isOk) {
+                    $expected = Table::UICharToStr($expArgs[$i - 1]);
+                    $typeStr = Table::UITypeToStr($token->getType());
+                    $this->printErrorMessage('Syntax error', "Expected {$expected}, got: '{$token->getVal()}' which is {$typeStr}!");
+                    $retCode = OTHER_ERROR;
                     return false;
                 }
 
-                xmlwriter_start_element($this->xml, "arg{$i}");
-                xmlwriter_start_attribute($this->xml, 'type');
-                xmlwriter_text($this->xml, 'var');
-                xmlwriter_end_attribute($this->xml);
 
                 $tokenValue = $token->getVal();
                 $argValue = null;
                 if(strpos($tokenValue, '@') !== false) {
-                    $argValue = substr($tokenValue, strpos($tokenValue, '@'));
+                    $argValue = substr($tokenValue, strpos($tokenValue, '@') + 1);
                 }
                 else {
                     $argValue = $tokenValue;
                 }
-                
-                xmlwriter_text($this->xml, htmlspecialchars($argValue, ENT_XML1, 'UTF-8'));
 
-                xmlwriter_end_element($this->xml);
+                $type = Table::typeToStr($token->getType());
+                $this->printer->printArgument($i, $type, $argValue);
             }
 
-            xmlwriter_end_element($this->xml);
+            $this->printer->endInstruction();
+
+            $this->insOrd++;
 
             return true;
         }
 
+        /**
+         * Skips all empty lines
+         */
         private function skipNewlines() {
             $token = null;
 
@@ -144,6 +227,10 @@
             $this->toBuffer($token);
         }
 
+        /**
+         * Checks if next token is NEWLINE
+         * @return Bool True if yes
+         */
         private function checkNewline() {
             $token = null;
             if(!$this->checkNext($token, true, type::NEWLINE)) {
@@ -156,17 +243,14 @@
             return true;
         }
 
-
+        /**
+         * Parses input file
+         */
         public function parse() {
             $token = null;
             $foundEOF = false;
 
-            $this->xml = xmlwriter_open_memory();
-            xmlwriter_set_indent($this->xml, 1);
-            xmlwriter_set_indent_string($this->xml, "\t");
-
-            xmlwriter_start_document($this->xml, '1.0', 'UTF-8');
-
+            $this->printer->initDoc();
 
             $this->skipNewlines();
             if($this->reachedEOF) {
@@ -183,10 +267,6 @@
                 return PARSE_SUCCESS;
             }
 
-            xmlwriter_start_element($this->xml, 'program');
-            xmlwriter_start_attribute($this->xml, 'language');
-            xmlwriter_text($this->xml, 'IPPcode22');
-            xmlwriter_end_attribute($this->xml);
 
             $retCode = PARSE_SUCCESS;
             while($this->checkOperation($token, $retCode)) {
@@ -195,11 +275,11 @@
                 }
             }
 
-            xmlwriter_end_element($this->xml);
+            $this->printer->endDoc();
 
-            xmlwriter_end_document($this->xml);
-
-            echo xmlwriter_output_memory($this->xml);
+            if($retCode === PARSE_SUCCESS) {
+                $this->printer->printXML();
+            }
 
             return $retCode;
         }

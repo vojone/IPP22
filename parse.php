@@ -4,8 +4,9 @@
     require_once 'parser.php';
 
     $stdin = fopen('php://stdin', 'r');
+    $stdout = fopen('php://stdout', 'w');
 
-    $parser = new Parser($stdin);
+    $parser = new Parser($stdin, $stdout);
 
     $ret = $parser->parse();
 

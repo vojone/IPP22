@@ -1,4 +1,3 @@
 .ippcode22 #TEST
 
-ADD abc agc abc
-
+ADD GF@string string@ string@

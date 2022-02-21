@@ -1,7 +1,18 @@
 <?php
+    /**************************************************************************
+     *                                  IPP project                           *  
+     *                                  scanner.php                           *
+     *                                                                        *
+     *                                 Vojtech Dvorak                         *
+     *                                 February 2022                          *
+     *************************************************************************/
+
     require_once 'token.php';
     require_once 'tables.php';
 
+    /**
+     * 
+     */
     enum state {
         case INIT;
         case COMMENT;
@@ -12,6 +23,9 @@
         case EOF;
     }
 
+    /**
+     * 
+     */
     class Scanner {
         private $inputStream;
 
@@ -21,6 +35,8 @@
 
         private $strBuffer;
 
+        private $expected;
+
         function __construct($input) {
             $this->inputStream = $input;
             $this->cursorPosition = array(
@@ -28,6 +44,7 @@
                 'COL' => 1
             );
 
+            $this->expected = array();
             $this->strBuffer = null;
             $this->charBuffer = null;
         }
@@ -37,12 +54,12 @@
             $state = state::INIT;
 
             $nextState = null;
-            $token = null;
+            $possibleTypes = array();
 
             $this->clearStrBuffer();
 
             $isEOF = false;
-            while($token === null) {
+            while(empty($possibleTypes)) {
                 $nextState = null;
                 $currentCharacter = $this->getChar($isEOF);
             
@@ -70,7 +87,7 @@
                             $nextState = state::NEWLINE;
                         }
                         else {
-                            $token = $this->createToken(type::ERROR, $this->strBuffer);
+                            array_push($possibleTypes, type::ERROR);
                         }
                       
                         break;
@@ -95,13 +112,8 @@
                         }
                         else {
                             $this->toBuffer($currentCharacter);
-                    
-                            if(preg_match('/^'.Table::aToRegex(Table::PROLOG).'$/i', $this->strBuffer)) {
-                                $token = $this->createToken(type::PROLOG, null);
-                            }
-                            else {
-                                $token = $this->createToken(type::ERROR, $this->strBuffer);
-                            }
+
+                            Table::isProlog($possibleTypes, $this->strBuffer);
                         }
 
                         break;
@@ -116,7 +128,7 @@
                         $this->cursorPosition['COL'] = 1;
 
                         $this->toBuffer($currentCharacter);
-                        $token = $this->createToken(type::NEWLINE, null);
+                        array_push($possibleTypes, type::NEWLINE);
 
                         break;
                     case state::DIRTY_TOKEN:
@@ -126,35 +138,40 @@
                         else {
                             $this->toBuffer($currentCharacter);
 
-                            $type = $this->classifyToken($this->strBuffer);
-
-                            $token = $this->createToken($type, $this->strBuffer);
+                            Table::classifyToken($possibleTypes, $this->strBuffer);
                         }
 
                         break;
 
                     case state::EOF:
-                        $token = $this->createToken(type::EOF, null);
+                        array_push($possibleTypes, type::EOF);
 
                         break;
                 }
 
-                if($token === null) {
+                if(empty($possibleTypes)) {
                     $this->strBuffer .= $currentCharacter;
                 }
 
-                if($state !== state::DIRTY_TOKEN && $nextState !== state::DIRTY_TOKEN) {
+                if($state !== state::DIRTY_TOKEN && 
+                   $nextState !== state::DIRTY_TOKEN &&
+                   !in_array(state::DIRTY_TOKEN, $possibleTypes, true)) {
+
                     $this->clearStrBuffer();
                 }
 
-                if($nextState === null && $token === null) {
-                    $token = $this->createToken(type::ERROR, $this->strBuffer);
+                if($nextState === null && empty($possibleTypes)) {
+                    array_push($possibleTypes, type::ERROR);
                     break;
                 }
                 else {
                     $state = $nextState;
                 }
             }
+
+            $token = $this->createToken($possibleTypes, $this->strBuffer);
+
+            $this->lastToken = $token;
 
             return $token;
         }
@@ -198,74 +215,57 @@
             return $this->charBuffer === null;
         }
 
-        private function createToken($type, $value) {
+        private function createToken($possibleTypes, $value) {
             $token = new Token();
-            $token->setType($type);
             $token->setVal($value);
 
+            $type = null;
+            if(in_array(type::ERROR, $possibleTypes)) {
+                $type = type::ERROR;
+            }
+            else if(empty($possibleTypes)) {
+                $type = type::ERROR;
+            }
+            else if(count($possibleTypes) === 1) {
+                $type = $possibleTypes[0];
+            }
+            else if(!empty($this->expected)) {
+                foreach($this->expected[0] as $curExpType) {
+                    if(in_array($curExpType, $possibleTypes, true)) {
+                        $type = $curExpType;
+                        break;
+                    }
+                }
+
+                if($type === null) {
+                    $type = $possibleTypes[0];
+                }
+    
+                $this->expected = array_shift($this->expected);
+            }
+            else {
+                $type = $possibleTypes[0];
+            }
+
+            if($type === type::OPCODE) {
+                $succesors = Table::OPERATION_CODES[$value];
+                
+                $expected = array();
+                for($i = 0;$i < strlen($succesors); $i++) {
+                    $succesorType = Table::charToTypes($succesors[$i]);
+                    array_push($this->expected, $succesorType);
+                }
+            }
+            else if($type === type::NEWLINE) {
+                $this->expected = array(array(type::OPCODE));
+            }
+            else {
+                $this->expected = array();
+            }
+
+            $token->setType($type);
+
             return $token;
-        }
-
-        private function classifyToken($inpString) {
-            $type = null;
-
-            $varName = '[a-zA-Z_\-$&%*!?][a-zA-Z_\-$&%*!?0-9]*';
-            $var = '/^'.Table::aToRegex(Table::FRAME_CODES).'@'.$varName.'$/';
-
-            $type = '/^'.Table::aToRegex(Table::TYPE_CODES).'$/';
-            $literal = '/^'.Table::aToRegex(Table::TYPE_CODES).'@.*$/';
-            $label = '/^[a-zA-Z_\-$&%*!?][a-zA-Z_\-$&%*!?0-9]*$/';
-
-
-            if(Table::searchInTab(Table::OPERATION_CODES, $inpString)) {
-                $type = type::OPCODE;
-            }
-            else if(preg_match($var, $inpString)) {
-                $type = type::VARIABLE;
-            }
-            else if(preg_match($type, $inpString)) {
-                $type = type::TYPE;
-            }
-            else if(preg_match($literal, $inpString)) {
-                $type = $this->classifyLiteral($inpString);
-            }
-            else if(preg_match($label, $inpString)) {
-                $type = type::LABEL;
-            }
-            else {
-                $type = type::ERROR;
-            }
-
-            return $type;
-        }
-
-        private function classifyLiteral($inpString) {
-            $type = null;
-
-            $stringContent = '([^\x{0000}-\x{0020}\s\\\]|(\\\[0-9]{3}))*)';
-            $string = '/^(string@'.$stringContent.'$/u';
-
-            $int = '/^int@-?[0-9]+$/';
-            $bool = '/^bool@(true|false)$/';
-            $nil = '/^nil@nil$/';
-
-            if(preg_match($int, $inpString)) {
-                $type = type::INT;
-            }
-            else if(preg_match($bool, $inpString)) {
-                $type = type::BOOL;
-            }
-            else if(preg_match($nil, $inpString)) {
-                $type = type::NIL;
-            }
-            else if(preg_match($string, $inpString)) {
-                $type = type::STR;
-            }
-            else {
-                $type = type::ERROR;
-            }
-
-            return $type;
         }
     }
 ?>
