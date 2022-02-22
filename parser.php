@@ -17,6 +17,7 @@
     define('INVALID_PROLOG', 21);
     define('INVALID_OPCODE', 22);
     define('OTHER_ERROR', 23);
+    define('INTERNAL_ERROR', 99);
 
     /**
      * Parses given program in source language and prints XML output
@@ -53,11 +54,12 @@
         private $insOrd;
 
         /**
+         * Parser constructor
          * @param FilePointer $input File pointer to a file with source code
          * @param FilePointer $output File pointer to a file, where should be printed target representation
          */
         function __construct($input, $output) {
-            $this->scanner = new Scanner($input);
+            $this->scanner = Scanner::instantiate($input);
 
             $this->printer = new XMLPrinter($output, "\t", 1);
 
@@ -71,7 +73,7 @@
         /**
          * Prints error message to $log
          * @param String $type Highlighted prefix of error message
-         * @param STring $content Content of the error message
+         * @param String $content Content of the error message
          */
         private function printErrorMessage($type, $content) {
             $curPos = $this->scanner->getCursorPosition();
@@ -171,6 +173,23 @@
 
             $this->printer->startInstruction($op->getVal(), $this->insOrd);
 
+            if(!$this->checkArgs($op)) {
+                return false;
+            }
+
+            $this->printer->endInstruction();
+
+            $this->insOrd++;
+
+            return true;
+        }
+
+        /**
+         * Checks arguments and prints of instruction
+         * @param Token $op Token with intruction its arguments should be checked
+         * @return Bool True if arguments are OK
+         */
+        private function checkArgs($op) {
             $expArgs = Table::OPERATION_CODES[$op->getVal()];
             $argNum = strlen($expArgs);
             for($i = 1; $i <= $argNum; $i++) {
@@ -195,25 +214,10 @@
                     return false;
                 }
 
-
-                $tokenValue = $token->getVal();
-                $argValue = null;
-                if(strpos($tokenValue, '@') !== false) {
-                    $argValue = substr($tokenValue, strpos($tokenValue, '@') + 1);
-                }
-                else {
-                    $argValue = $tokenValue;
-                }
-
+                $argValue = $token->getPurifiedVal();
                 $type = Table::typeToStr($token->getType());
                 $this->printer->printArgument($i, $type, $argValue);
             }
-
-            $this->printer->endInstruction();
-
-            $this->insOrd++;
-
-            return true;
         }
 
         /**
@@ -252,12 +256,14 @@
 
             $this->printer->initDoc();
 
+            //Skip initial empty lines
             $this->skipNewlines();
             if($this->reachedEOF) {
                 return PARSE_SUCCESS;
             }
 
 
+            //Check if there is header (rpolog)
             if(!$this->checkNext($token, $foundEOF, type::PROLOG)) {
                 $this->printErrorMessage('Syntax error', "Header expected, got: '{$token->getVal()}'");
                 
@@ -268,6 +274,7 @@
             }
 
 
+            //Check instruction 'list'
             $retCode = PARSE_SUCCESS;
             while($this->checkOperation($token, $retCode)) {
                 if($this->reachedEOF) {

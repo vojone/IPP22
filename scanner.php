@@ -11,33 +11,57 @@
     require_once 'tables.php';
 
     /**
+     * Reads one token from input (it can be also EOF, newline or error token)
+     * and determines its type
      * 
-     */
-    enum state {
-        case INIT;
-        case COMMENT;
-        case NEWLINE;
-        case WNEWLINE;
-        case PROLOG;
-        case DIRTY_TOKEN;
-        case EOF;
-    }
-
-    /**
-     * 
+     * Because it interacts with input, there can be only one scanner (implemented as singleton) to
+     * make input consitent
      */
     class Scanner {
+
+        private static $inst = null;
+
+        /**
+         * @var Resource $inputStream Input with source code
+         */
         private $inputStream;
 
+        /**
+         * @var Array $cursorPosition Position of cursor (associative array with 2 values - ROW, COL)
+         */
         private $cursorPosition;
 
+        /**
+         * @var Char $charBuffer Buffer for one character waiting for accepting
+         */
         private $charBuffer;
 
+        /**
+         * @var String $strBuffer Contains value of currently processed token
+         */
         private $strBuffer;
 
+        /**
+         * @var Char $curChar Character that is currently processed
+         */
+        private $curChar;
+
+        /**
+         * @var Boolean $foundEOF Value signalizing that EOF was reached
+         */
+        private $foundEOF;
+
+        /**
+         * @var Array2D Twodimensional array with types of tokens, that are expected (used 
+         * for context parsing)
+         */
         private $expected;
 
-        function __construct($input) {
+        /**
+         * Scanner constructor
+         * @param Resource $input Input file where can be source code read
+         */
+        private function __construct($input) {
             $this->inputStream = $input;
             $this->cursorPosition = array(
                 'ROW' => 1,
@@ -48,177 +72,182 @@
             $this->strBuffer = null;
             $this->charBuffer = null;
         }
+
+        /**
+         * Constructor of singleton instance of Scanner 
+         */
+        public static function instantiate($input) {
+            if(Scanner::$inst === null) {
+                return new Scanner($input);
+            }
+            else {
+                return Scanner::$inst;
+            }
+        }
+
+        /**
+         * Returns position of cursor in input
+         * @return Array asociative array with two values (first is 'ROW', second is 'COL')
+         */
+        public function getCursorPosition() {
+            return $this->cursorPosition;
+        }
+
+        /**
+         * Sets cursor position due to arguments
+         * @param CharOrInteger $row if it is +/- it increments/decrements current row, 
+         *                      if it is integer it sets it to this its value
+         * @param CharOrInteger $col if it is +/- it increments/decrements current col, 
+         *                      if it is integer it sets it to this integer
+         */
+        public function setCursorPosition($row, $col) {
+            if($row === '+') {
+                $this->cursorPosition['ROW']++;
+            }
+            else if($row === '-') {
+                $this->cursorPosition['ROW']--;
+            }
+            else if(gettype($row) === 'integer') {
+                $this->cursorPosition['ROW'] = $row;
+            }
+
+            if($col === '+') {
+                $this->cursorPosition['COL']++;
+            }
+            else if($row === '-') {
+                $this->cursorPosition['COL']--;
+            }
+            else if(gettype($col) === 'integer') {
+                $this->cursorPosition['COL'] = $col;
+            }
+        }
+
+        /**
+         * Returns value of foundEOF flag
+         */
+        public function wasEOFFound() {
+            return $this->foundEOF;
+        }
+
+        /**
+         * Returns current processed character
+         */
+        public function getCurChar() {
+            return $this->curChar;
+        }
+
+        /**
+         * Returns current processed string by FSM
+         */
+        public function getStr() {
+            return $this->strBuffer;
+        }
+
         
-
+        /**
+         * Reads one token from input and returns it
+         * @return Token Token from input
+         */
         public function nextToken() {
-            $state = state::INIT;
-
-            $nextState = null;
             $possibleTypes = array();
-
             $this->clearStrBuffer();
 
-            $isEOF = false;
+            $this->foundEOF = false;
+
+            FSM::reset();
             while(empty($possibleTypes)) {
-                $nextState = null;
-                $currentCharacter = $this->getChar($isEOF);
-            
-                switch($state) {
-                    case state::INIT:
-                        if($isEOF) {
-                            $nextState = state::EOF;
-                        }
-                        else if(preg_match('/[ \t]/', $currentCharacter)) {
-                            $nextState = state::INIT;
-                        }
-                        else if(preg_match('/[#]/', $currentCharacter)) {
-                            $nextState = state::COMMENT;
-                        }
-                        else if(preg_match('/[.]/', $currentCharacter)) {
-                            $nextState = state::PROLOG;
-                        }
-                        else if(preg_match('/[a-z_\-$&%*!?]/i', $currentCharacter)) {
-                            $nextState = state::DIRTY_TOKEN;
-                        }
-                        else if(preg_match('/[\r]/', $currentCharacter)) {
-                            $nextState = state::WNEWLINE;
-                        }
-                        else if(preg_match('/[\n]/', $currentCharacter)) {
-                            $nextState = state::NEWLINE;
-                        }
-                        else {
-                            array_push($possibleTypes, type::ERROR);
-                        }
-                      
-                        break;
-                    case state::COMMENT:
-                        if($isEOF) {
-                            $nextState = state::EOF;
-                        }
-                        else if(preg_match('/[\r]/', $currentCharacter)) {
-                            $nextState = state::WNEWLINE;
-                        }
-                        else if(preg_match('/[\n]/', $currentCharacter)) {
-                            $nextState = state::NEWLINE;
-                        }
-                        else {
-                            $nextState = state::COMMENT;
-                        }
+                $this->readNextChar();
 
-                        break;
-                    case state::PROLOG:
-                        if(!$isEOF && preg_match('/[a-z0-9_\-$&%*!?]/i', $currentCharacter)) {
-                            $nextState = state::PROLOG;
-                        }
-                        else {
-                            $this->toBuffer($currentCharacter);
+                //Found corresponding transition function and process char with it
+                FSM::doTransition($this, $possibleTypes);
 
-                            Table::isProlog($possibleTypes, $this->strBuffer);
-                        }
-
-                        break;
-                    case state::WNEWLINE:
-                        if(preg_match('/[\n]/', $currentCharacter)) {
-                            $nextState = state::NEWLINE;
-                        }
-
-                        break;
-                    case state::NEWLINE:
-                        $this->cursorPosition['ROW']++;
-                        $this->cursorPosition['COL'] = 1;
-
-                        $this->toBuffer($currentCharacter);
-                        array_push($possibleTypes, type::NEWLINE);
-
-                        break;
-                    case state::DIRTY_TOKEN:
-                        if(!$isEOF && !preg_match('/[\s\\#]/', $currentCharacter)) {
-                            $nextState = state::DIRTY_TOKEN;
-                        }
-                        else {
-                            $this->toBuffer($currentCharacter);
-
-                            Table::classifyToken($possibleTypes, $this->strBuffer);
-                        }
-
-                        break;
-
-                    case state::EOF:
-                        array_push($possibleTypes, type::EOF);
-
-                        break;
-                }
-
+                //If type was not recognized, save current character to string buffer
                 if(empty($possibleTypes)) {
-                    $this->strBuffer .= $currentCharacter;
+                    $this->strBuffer .= $this->curChar;
                 }
 
-                if($state !== state::DIRTY_TOKEN && 
-                   $nextState !== state::DIRTY_TOKEN &&
+                if(FSM::getState() !== state::DIRTY_TOKEN && 
+                   FSM::getNextState() !== state::DIRTY_TOKEN &&
                    !in_array(state::DIRTY_TOKEN, $possibleTypes, true)) {
 
                     $this->clearStrBuffer();
                 }
 
-                if($nextState === null && empty($possibleTypes)) {
+                //Age next state (if it is given)
+                if(FSM::getNextState() === null && empty($possibleTypes)) {
                     array_push($possibleTypes, type::ERROR);
                     break;
                 }
                 else {
-                    $state = $nextState;
+                    FSM::ageState();
                 }
             }
 
             $token = $this->createToken($possibleTypes, $this->strBuffer);
-
             $this->lastToken = $token;
 
             return $token;
         }
 
-        public function getCursorPosition() {
-            return $this->cursorPosition;
-        }
-
-        private function getChar(&$isEOF) {
-            if($this->charBuffer !== null) {
-                $tmp = $this->charBuffer;
-                $this->charBuffer = null;
-                $isEOF = false;
-                return $tmp;
-            }
-            else  {
-                $fromInput = fgetc($this->inputStream);
-
-                if($fromInput === false) {
-                    $isEOF = true;
-                    return null;
-                }
-                else {
-                    $isEOF = false;
-                    return $fromInput;
-                }
-            }
-        }
-
-        private function clearStrBuffer() {
+        //Clears buffer with currently processed string (token)
+        public function clearStrBuffer() {
             $this->cursorPosition['COL'] += strlen($this->strBuffer);
 
             $this->strBuffer = null;
         }
 
-        private function toBuffer($character) {
+        /**
+         * Saves given character to buffer
+         * @param Char $character character to be saved 
+         */
+        public function toBuffer($character) {
             $this->charBuffer = $character;
         }
 
-        private function isBufferEmpty() {
+        /**
+         * Checks whether character buffer is empty or not
+         * @return Bool True if character buffer is empty
+         */
+        public function isBufferEmpty() {
             return $this->charBuffer === null;
         }
 
-        private function createToken($possibleTypes, $value) {
-            $token = new Token();
-            $token->setVal($value);
+        /**
+         * Reads next char from input or from buffer and updates 
+         * processed character with it
+         */
+        private function readNextChar() {
+            //EOF was found before
+            if($this->foundEOF) { 
+                $this->foundEOF = true;
+                $this->curChar = null;
+                return;
+            }
 
+            //There is character in buffer
+            if($this->charBuffer !== null) { 
+                $this->curChar = $this->charBuffer;
+                $this->charBuffer = null;
+                $this->foundEOF = false;
+            }
+            else  { 
+                $fromInput = fgetc($this->inputStream);
+
+                if($fromInput === false) {
+                    $this->foundEOF = true;
+                    $this->curChar = null;
+                }
+                else {
+                    $this->foundEOF = false;
+                    $this->curChar = $fromInput;
+                }
+            }
+        }
+
+        /**
+         * Creates token and initializes due to lexical analysis
+         */
+        private function createToken($possibleTypes, $value) {
             $type = null;
             if(in_array(type::ERROR, $possibleTypes)) {
                 $type = type::ERROR;
@@ -247,11 +276,22 @@
                 $type = $possibleTypes[0];
             }
 
+            $token = new Token();
+            $token->setType($type);
+            $token->setVal($value);
+
+            return $token;
+        }
+
+        /**
+         * Updates array with expected types
+         */
+        private function updateExp($type) {
             if($type === type::OPCODE) {
                 $succesors = Table::OPERATION_CODES[$value];
                 
                 $expected = array();
-                for($i = 0;$i < strlen($succesors); $i++) {
+                for($i = 0; $i < strlen($succesors); $i++) {
                     $succesorType = Table::charToTypes($succesors[$i]);
                     array_push($this->expected, $succesorType);
                 }
@@ -262,10 +302,7 @@
             else {
                 $this->expected = array();
             }
-
-            $token->setType($type);
-
-            return $token;
         }
     }
+
 ?>

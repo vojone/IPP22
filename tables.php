@@ -2,6 +2,7 @@
     /**************************************************************************
      *                                  IPP project                           *  
      *                                   tables.php                           *
+     *  Contains statical classes defining lexical aspects of source language *
      *                                                                        *
      *                                 Vojtech Dvorak                         *
      *                                 February 2022                          *
@@ -13,15 +14,15 @@
      */
     class Table {
         /**
-         * Contains all possible headers
+         * @var Array PROLOG Contains all possible headers
          */
         public const PROLOG = array(
             '.IPPcode22'
         );
 
         /**
-         * Contains valid operaton codes (as keys) and associated strings, that 
-         * specifies their arguments
+         * @var Array OPERATION_DOES Contains valid operaton codes (as keys) ¨
+         * and associated strings, that specifies their arguments
          */
         public const OPERATION_CODES = array(
             'MOVE' => 'v&', 'CREATEFRAME' => '', 'PU&HFRAME' => '',
@@ -43,12 +44,15 @@
         );
 
         /**
-         * Data types
+         * @var Array Data types
          */
         public const TYPE_CODES = array(
             'string', 'int', 'nil', 'bool'
         );
 
+        /**
+         * Provides type to string conversion for printing XML
+         */
         public static function typeToStr($type) {
             switch($type) {
                 case type::STR:
@@ -68,6 +72,9 @@
             }
         }
 
+        /**
+         * Converts type to string to be understood by user
+         */
         public static function UITypeToStr($type) {
             switch($type) {
                 case type::STR:
@@ -79,14 +86,17 @@
                 case type::NIL:
                     return 'nil';
                 case type::TYPE:
-                    return 'type';
+                    return 'type specifier';
                 case type::LABEL:
                     return 'label';
                 case type::VARIABLE:
-                    return 'var';
+                    return 'variable';
             }
         }
 
+        /**
+         * Converts type specifier from table of op. codes to array of token types 
+         */
         public static function charToTypes($char) {
             switch($char) {
                 case '&':
@@ -104,6 +114,9 @@
             }
         }
 
+        /**
+         * Converts type specifier from table of opcodes to user friendly string
+         */
         public static function UICharToStr($char) {
             switch($char) {
                 case '&':
@@ -117,6 +130,9 @@
             }
         }
 
+        /**
+         * Check if given string is prolog or not
+         */
         public static function isProlog(&$possibleTypes, $inpString) {
             $prolog = '/^'.Table::aToRegex(Table::PROLOG).'$/i';
             if(preg_match($prolog, $inpString)) {
@@ -140,7 +156,6 @@
             $type = '/^'.Table::aToRegex(Table::TYPE_CODES).'$/';
             $literal = '/^'.Table::aToRegex(Table::TYPE_CODES).'@.*$/';
             $label = '/^[a-zA-Z_\-$&%*!?][a-zA-Z_\-$&%*!?0-9]*$/';
-
 
             if(Table::searchInstr(Table::OPERATION_CODES, $inpString)) {
                 array_push($possibleTypes, type::OPCODE);
@@ -230,6 +245,186 @@
 
             return $regex;
         }
+    }
+
+    
+    /**
+     * Additional enum type for states of FSM
+     */
+    enum state {
+        case INIT;
+        case COMMENT;
+        case NEWLINE;
+        case WNEWLINE;
+        case PROLOG;
+        case DIRTY_TOKEN;
+        case EOF;
+    }
+
+
+    /**
+     * FSM classifying tokens controlled by scanner object
+     */
+    class FSM {
+
+        /**
+         * @var state $state Current state of FSM
+         */
+        private static $state = state::INIT;
+
+        /**
+         * @var state $state Next state of FSM (can be se)
+         */
+        private static $nextState = null;
+
+        /**
+         * Puts FSM to default state
+         */
+        public static function reset() {
+            FSM::$state = state::INIT;
+            FSM::$nextState = null;
+        }
+
+        /**
+         * Moves value from next state to (current) state and clears next state
+         */
+        public static function ageState() {
+            FSM::$state = FSM::$nextState;
+            FSM::$nextState = null;
+        }
+
+        public static function getNextState() {
+            return FSM::$nextState;
+        }
+
+        public static function getState() {
+            return FSM::$state;
+        }
+
+        /**
+         * Initial function of every FSM run, selects transition function due to current state
+         * @param Scanner $scanner Scanner object that calls (and controls) FSM 
+         * @param Array $possibleTypes array that will be filled with all types, that current token can have
+         */
+        public static function doTransition($scanner, &$possibleTypes) {
+            switch(FSM::$state) {
+                case state::INIT:
+                    FSM::INITtr($scanner, $possibleTypes);
+                    break;
+                case state::COMMENT:
+                    FSM::COMMENTtr($scanner, $possibleTypes);
+                    break;
+                case state::PROLOG:
+                    FSM::PROLOGtr($scanner, $possibleTypes);
+                    break;
+                case state::WNEWLINE:
+                    FSM::WNEWLINEtr($scanner, $possibleTypes);
+                    break;
+                case state::NEWLINE:
+                    FSM::NEWLINEtr($scanner, $possibleTypes);
+                    break;
+                case state::DIRTY_TOKEN:
+                    FSM::DIRTY_TOKENtr($scanner, $possibleTypes);
+                    break;
+                case state::EOF:
+                    FSM::EOFtr($scanner, $possibleTypes);
+                    break;
+            }
+        }
+
+        //---------------------FSM Transition functions------------------------
+
+
+        public static function INITtr($scanner, &$possibleTypes) {
+            $currentChar = $scanner->getCurChar();
+
+            if($scanner->wasEOFFound()) {
+                FSM::$nextState = state::EOF;
+            }
+            else if(preg_match('/[ \t]/', $currentChar)) {
+                FSM::$nextState = state::INIT;
+            }
+            else if(preg_match('/[#]/', $currentChar)) {
+                FSM::$nextState = state::COMMENT;
+            }
+            else if(preg_match('/[.]/', $currentChar)) {
+                FSM::$nextState = state::PROLOG;
+            }
+            else if(preg_match('/[a-z_\-$&%*!?]/i', $currentChar)) {
+                FSM::$nextState = state::DIRTY_TOKEN;
+            }
+            else if(preg_match('/[\r]/', $currentChar)) {
+                FSM::$nextState = state::WNEWLINE;
+            }
+            else if(preg_match('/[\n]/', $currentChar)) {
+                FSM::$nextState = state::NEWLINE;
+            }
+            else {
+                array_push($possibleTypes, type::ERROR);
+            }
+        }
+
+        public static function COMMENTtr($scanner, &$possibleTypes) {
+            if($scanner->wasEOFFound()) {
+                FSM::$nextState = state::EOF;
+            }
+            else if(preg_match('/[\r]/', $scanner->getCurChar())) {
+                FSM::$nextState = state::WNEWLINE;
+            }
+            else if(preg_match('/[\n]/', $scanner->getCurChar())) {
+                FSM::$nextState = state::NEWLINE;
+            }
+            else {
+                FSM::$nextState = state::COMMENT;
+            }
+        }
+
+        public static function NEWLINEtr($scanner, &$possibleTypes) {
+            $scanner->setCursorPosition('+', 1);
+
+            $currentChar = $scanner->getCurChar();
+            $scanner->toBuffer($currentChar);
+            array_push($possibleTypes, type::NEWLINE);
+        }
+
+        public static function WNEWLINEtr($scanner, &$possibleTypes) {
+            if(preg_match('/[\n]/', $scanner->getCurChar())) {
+                FSM::$nextState = state::NEWLINE;
+            }
+        }
+
+        public static function PROLOGtr($scanner, &$possibleTypes) {
+            if(!$scanner->wasEOFFound() && 
+                preg_match('/[a-z0-9_\-$&%*!?]/i', $scanner->getCurChar())) {
+
+                FSM::$nextState = state::PROLOG;
+            }
+            else {
+                $scanner->toBuffer($scanner->getCurChar());
+
+                Table::isProlog($possibleTypes, $scanner->getStr());
+            }
+        }
+
+        public static function DIRTY_TOKENtr($scanner, &$possibleTypes) {
+            if(!$scanner->wasEOFFound() && 
+               !preg_match('/[\s\\#]/', $scanner->getCurChar())) {
+
+                FSM::$nextState = state::DIRTY_TOKEN;
+            }
+            else {
+                $currentChar = $scanner->getCurChar();
+                $scanner->toBuffer($currentChar);
+
+                Table::classifyToken($possibleTypes, $scanner->getStr());
+            }
+        }
+
+        public static function EOFtr($scanner, &$possibleTypes) {
+            array_push($possibleTypes, type::EOF);
+        }
+
+        //---------------------------------------------------------------------
     }
 
 ?>
