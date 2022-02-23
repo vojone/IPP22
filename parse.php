@@ -13,55 +13,29 @@
     ini_set('display_errors', 'stderr');
 
     require_once 'parser.php';
+    require_once 'ui.php';
 
-    $lOpts = array('help');
-    $sOpts = '';
-    $args = getopt($sOpts, $lOpts);
+    $stdin = fopen('php://stdin', 'r');
+    $stdout = fopen('php://stdout', 'w');
+    $stderr = fopen('php://stderr', 'w');
 
-    $ret = PARSE_SUCCESS;
-    if(!empty($args) && isset($args['help'])) {
-        printHelp();
+    if(!$stdin || !$stdout) {
+        exit(INTERNAL_ERROR);
     }
-    else {
-        $stdin = fopen('php://stdin', 'r');
-        $stdout = fopen('php://stdout', 'w');
 
-        if(!$stdin || !$stdout) {
-            $ret = INTERNAL_ERROR;
-        }
-        else {
-            $parser = new Parser($stdin, $stdout);
+    $ui = new UI($stdin, $stdout, $stderr);
+    $ui->parseArgs();
 
-            $ret = $parser->parse();
-        }
+    if($ui->wasHelpCalled()) {
+        $ui->printHelp();
+    }
+
+    $parser = new Parser($stdin, $stdout, $ui);
+    $ret = $parser->parse();
+
+    if($ret = PARSE_SUCCESS) {
+        $ui->printStats();
     }
 
     exit($ret);
-
-
-
-    function printHelp() {
-        echo <<<END
-        IPPcode22 parser (PHP8 skript)
-        
-        Program kontroluje lexikální a syntaktickou správnost programu 
-        v jazyce IPPcode22, který čte ze standardního vstupu (STDIN). 
-        Pokud je v pořádku je na stadardní výstup (STDOUT) vytisknuta 
-        XML reprezentace vstupního programu.
-
-        Použití:
-        ./php8.1 parse.php [--help] [< 'vstupni_soubor'] [> 'vystupni soubor']
-
-        Možnosti:
-        --help      Vypíše stručnou nápovědu
-
-        Návratové kódy:
-        0   Vstupní program neobsahuje žádnou lexikální nebo syntaktickou chybu
-        21  Chybějící/neplatná hlavička na začátku programu
-        22  Neznámý/chybný operační kód
-        23  Jiná lexikální syntaktická chyba
-        99  Interní chyba parseru 
-
-        END;
-    }
 ?>

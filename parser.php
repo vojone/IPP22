@@ -10,7 +10,6 @@
 
     require_once 'scanner.php';
     require_once 'printer.php';
-    require_once 'token.php';
 
     //Return codes of the parser
     define('PARSE_SUCCESS', 0);
@@ -24,32 +23,32 @@
      */
     class Parser {
         /**
-         * Scanner object, that provides tokens to parser
+         * @var Scanner Object, that provides tokens to parser
          */
         private $scanner;
 
         /**
-         * Printer object, that is used for creating target XML
+         * @var Printer Object, that is used for creating target XML
          */
         private $printer;
 
         /**
-         * Temporary storage for one token
+         * @var Token Temporary storage for one token
          */
         private $tokenBuffer;
 
         /**
-         * Flag, that indicates end of input file
+         * @var Bool Flag, that indicates end of input file
          */
         private $reachedEOF;
 
         /**
-         * File pointer to a file, where will be printed error messages 
+         * @var UI UI that can print error messages and collects stats
          */
-        private $logStream;
+        private $ui;
 
         /**
-         * Instruction counter
+         * @var Integer Instruction counter
          */
         private $insOrd;
 
@@ -58,7 +57,7 @@
          * @param FilePointer $input File pointer to a file with source code
          * @param FilePointer $output File pointer to a file, where should be printed target representation
          */
-        function __construct($input, $output) {
+        function __construct($input, $output, $ui) {
             $this->scanner = Scanner::instantiate($input);
 
             $this->printer = new XMLPrinter($output, "\t", 1);
@@ -67,20 +66,9 @@
             $this->tokenBuffer = null;
             $this->insOrd = 1;
 
-            $this->log = fopen('php://stderr', 'a');
+            $this->ui = $ui;
         }
 
-        /**
-         * Prints error message to $log
-         * @param String $type Highlighted prefix of error message
-         * @param String $content Content of the error message
-         */
-        private function printErrorMessage($type, $content) {
-            $curPos = $this->scanner->getCursorPosition();
-
-            fwrite($this->log, "({$curPos['ROW']}, {$curPos['COL']})\t");
-            fwrite($this->log, "\033[31m{$type}\033[0m : {$content}\n");
-        }
 
         /**
          * Check whether token buffer is empty or not
@@ -263,7 +251,7 @@
             }
 
 
-            //Check if there is header (rpolog)
+            //Check if there is header (prolog)
             if(!$this->checkNext($token, $foundEOF, type::PROLOG)) {
                 $this->printErrorMessage('Syntax error', "Header expected, got: '{$token->getVal()}'");
                 

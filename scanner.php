@@ -7,8 +7,88 @@
      *                                 February 2022                          *
      *************************************************************************/
 
-    require_once 'token.php';
     require_once 'tables.php';
+
+    enum type {
+        case OPCODE;
+        case STR;
+        case BOOL;
+        case INT;
+        case NIL;
+        case TYPE;
+        case LABEL;
+        case VARIABLE;
+        case PROLOG;
+        case ERROR;
+        case EOF;
+        case NEWLINE;
+    }
+
+    /**
+     * Token class
+     */
+    class Token {
+        /**
+         * @var type $type Specifies type of token
+         */
+        private $type = null;
+
+        /**
+         * @var String $value Contains value of token (with prefixes) 
+         */
+        private $value = null;
+
+        /**
+         * Type setter
+         * @param type $newType New type of token
+         */
+        public function setType($newType) {
+            $this->type = $newType;
+        }
+
+        /**
+         * Value setter
+         * @param String $newValue New value of token
+         */
+        public function setVal($newValue) {
+            $this->value = $newValue;
+        }
+
+        public function getType() {
+            return $this->type;
+        }
+
+        public function getVal() {
+            if($this->type == type::EOF) {
+                return 'EOF';
+            }
+            else if($this->type == type::NEWLINE) {
+                return 'NEWLINE';
+            }
+            else {
+                return $this->value;
+            }
+        }
+
+        /**
+         * Returns value of token without prefixes
+         * @return String Value of token without prefixes such as frame or data type
+         */
+        public function getPurifiedVal() {
+            $tokenValue = $this->getVal();
+
+            $argValue = null;
+            if(strpos($tokenValue, '@') !== false) {
+                $argValue = substr($tokenValue, strpos($tokenValue, '@') + 1);
+            }
+            else {
+                $argValue = $tokenValue;
+            }
+
+            return $argValue;
+        }
+
+    }
 
     /**
      * Reads one token from input (it can be also EOF, newline or error token)
