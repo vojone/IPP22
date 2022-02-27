@@ -91,8 +91,9 @@
             xmlwriter_end_attribute($this->xmlCtx);
 
             //Substituion of problematic characters for equivalent sequences
-            $xmlFriendlyVal = htmlspecialchars($value, ENT_XML1, 'UTF-8');
-            xmlwriter_text($this->xmlCtx, $xmlFriendlyVal);
+            
+            //$xmlFriendlyVal = htmlspecialchars($value, ENT_XML1, 'UTF-8'); <- SUPERFLUOS XML writer is XML safe
+            xmlwriter_text($this->xmlCtx, $value);
 
             xmlwriter_end_element($this->xmlCtx);
         }

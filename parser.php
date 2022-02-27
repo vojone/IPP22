@@ -9,6 +9,7 @@
 
 
     require_once 'scanner.php';
+    require_once 'ui.php';
     require_once 'printer.php';
 
     //Return codes of the parser
@@ -88,14 +89,14 @@
         /**
          * Takes one next token from buffer or from input and check its validity
          */
-        private function getNextToken() {
+        private function getNextToken($lexErrTolerant = false) {
             $token = null;
 
             if($this->isBufferEmpty()) {
                 $token = $this->scanner->nextToken();
-                if($token->getType() === type::ERROR) {
+                if($token->getType() === type::ERROR && $lexErrTolerant) {
                     $str = $token->getVal();
-                    $this->printErrorMessage('Lexical error', "Invalid token {$str}! ");
+                    $this->ui->printErrorMessage('Lexikální chyba', "Neplatný token {$str}! ");
 
                     exit(OTHER_ERROR);
                 }
@@ -153,7 +154,7 @@
             }
 
             if(!$this->checkNext($op, true, type::OPCODE)) {
-                $this->printErrorMessage('Syntax error', "Operation code expected, got: '{$op->getVal()}'");
+                $this->ui->printErrorMessage('Syntaktická chyba', "Očekávána intrukce, nalezeno: '{$op->getVal()}'");
                 $retCode = INVALID_OPCODE;
                 return false;
             }
@@ -161,7 +162,7 @@
 
             $this->printer->startInstruction($op->getVal(), $this->insOrd);
 
-            if(!$this->checkArgs($op)) {
+            if(!$this->checkArgs($op, $retCode)) {
                 return false;
             }
 
@@ -177,8 +178,8 @@
          * @param Token $op Token with intruction its arguments should be checked
          * @return Bool True if arguments are OK
          */
-        private function checkArgs($op) {
-            $expArgs = Table::OPERATION_CODES[$op->getVal()];
+        private function checkArgs($op, &$retCode) {
+            $expArgs = Table::OPERATION_CODES[strtoupper($op->getVal())];
             $argNum = strlen($expArgs);
             for($i = 1; $i <= $argNum; $i++) {
                 $token = null;
@@ -195,9 +196,9 @@
                 }
 
                 if(!$isOk) {
-                    $expected = Table::UICharToStr($expArgs[$i - 1]);
-                    $typeStr = Table::UITypeToStr($token->getType());
-                    $this->printErrorMessage('Syntax error', "Expected {$expected}, got: '{$token->getVal()}' which is {$typeStr}!");
+                    $expected = UI::CharToStr($expArgs[$i - 1]);
+                    $typeStr = UI::TypeToStr($token->getType());
+                    $this->ui->printErrorMessage('Syntaktická chyba', "Očekáváno: {$expected}, nalezeno: '{$token->getVal()}' což je {$typeStr}!");
                     $retCode = OTHER_ERROR;
                     return false;
                 }
@@ -206,6 +207,8 @@
                 $type = Table::typeToStr($token->getType());
                 $this->printer->printArgument($i, $type, $argValue);
             }
+
+            return true;
         }
 
         /**
@@ -226,7 +229,7 @@
         private function checkNewline() {
             $token = null;
             if(!$this->checkNext($token, true, type::NEWLINE)) {
-                $this->printErrorMessage('Syntax error', "Missing NEWLINE!");
+                $this->ui->printErrorMessage('Syntaktická chyba', "Chybí zalomení řádku!");
                 return false;
             }
 
@@ -252,8 +255,9 @@
 
 
             //Check if there is header (prolog)
-            if(!$this->checkNext($token, $foundEOF, type::PROLOG)) {
-                $this->printErrorMessage('Syntax error', "Header expected, got: '{$token->getVal()}'");
+            $prologToken = $this->getNextToken(lexErrTolerant : true);
+            if($prologToken->getType() !== type::PROLOG) {
+                $this->ui->printErrorMessage('Syntaktická chyba', "Očekávána hlavička .IPPcode22, nalezeno: '{$prologToken->getVal()}'");
                 
                 return INVALID_PROLOG;
             }

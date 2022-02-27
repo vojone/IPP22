@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>IPPcode22 test framework</title>
+    </head>
+
+    <body>
+    <style>
+        body {
+            background-color: whitesmoke;
+            font-family: Calibri;
+        }
+
+        .leader {
+            order: 1;
+            background-color: white;
+            border-radius: 10px;
+            padding: 10px 10px 20px 20px;
+        }
+
+        .header {
+            top: 0;
+            left: 0;
+            right: 0;
+
+            margin-bottom: 10px;
+        }
+
+        .content {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            width: 100%;
+        }
+
+        .item {
+            order: 2;
+            background-color: white;
+            border-radius: 10px;
+            padding: 10px 10px 20px 20px;
+            gab: 5px;
+        }
+
+        .item .wrapper {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-around;
+        }
+
+        .item .details {
+            border: 1px solid black;
+            border-radius: 5px;
+            padding: 10px;
+            width: 30%;
+            overflow: auto;
+        }
+
+        div.success {
+            background-color: #c9ffd0;
+            border: 1px solid green;
+        }
+
+        .success b, span.success {
+            color: green;
+        }
+
+        .info b, span.info {
+            color: #edc40e;
+        }
+
+        div.fail {
+            background-color: #ffadad;
+            border: 1px solid red;
+        }
+
+        .fail b, span.fail {
+            color: red;
+        }
+
+        .code {
+            font-family: Courier;
+        }
+
+    </style>
+    <div class='header'></div>
+    <div class='content'>java -jar jexamxml/jexamxml.jar Test2/test.out Test2/test.xml.tmp Test2/test.diff /D jexamxml/options
+    <div class='item success'>
+        <h2>#1&nbsp&nbsp&nbsptest</h2>
+        <p><b>Pass!</b></p>
+    </div>
+
+    <div class='leader'>
+        <h1>Tests summary</h1>
+        Test results from: &nbsp &nbsp <span class='code'>2022-02-27 00:33:16</span><br>
+                           Command: &nbsp &nbsp <span class='code'>test.php --directory=Test2 --recursive --parse-only --noclean </span><br>
+                           Result: <b><span class='success'>1</span></b>/1 (passed/total)<br><br>
+                           <span class='success'>Well done! All tests passed!</span>
+    </div>
+    </div>
+    </body>
+</html>
+    

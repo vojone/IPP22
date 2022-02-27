@@ -25,13 +25,13 @@
          * and associated strings, that specifies their arguments
          */
         public const OPERATION_CODES = array(
-            'MOVE' => 'v&', 'CREATEFRAME' => '', 'PU&HFRAME' => '',
+            'MOVE' => 'v&', 'CREATEFRAME' => '', 'PUSHFRAME' => '',
             'POPFRAME' => '', 'DEFVAR' => 'v', 'CALL' => 'l', 
             'RETURN' => '', 'PUSHS' => '&', 'POPS' => 'v', 
             'ADD' => 'v&&', 'SUB' => 'v&&', 'MUL' => 'v&&', 
             'IDIV' => 'v&&', 'LT' => 'v&&', 'GT' => 'v&&', 
             'EQ' => 'v&&', 'AND' => 'v&&', 'OR' => 'v&&', 
-            'NOT' => 'v&&', 'INT2CHAR' => 'v&', 'STRI2INT' => 'v&&', 
+            'NOT' => 'v&', 'INT2CHAR' => 'v&', 'STRI2INT' => 'v&&', 
             'READ' => 'vt', 'WRITE' => '&', 'CONCAT' => 'v&&', 
             'STRLEN' => 'v&', 'GETCHAR' => 'v&&', 'SETCHAR' => 'v&&', 
             'TYPE' => 'v&', 'LABEL' => 'l', 'JUMP' => 'l', 
@@ -73,28 +73,6 @@
         }
 
         /**
-         * Converts type to string to be understood by user
-         */
-        public static function UITypeToStr($type) {
-            switch($type) {
-                case type::STR:
-                    return 'string';
-                case type::INT:
-                    return 'integer';
-                case type::BOOL:
-                    return 'bool';
-                case type::NIL:
-                    return 'nil';
-                case type::TYPE:
-                    return 'type specifier';
-                case type::LABEL:
-                    return 'label';
-                case type::VARIABLE:
-                    return 'variable';
-            }
-        }
-
-        /**
          * Converts type specifier from table of op. codes to array of token types 
          */
         public static function charToTypes($char) {
@@ -114,21 +92,6 @@
             }
         }
 
-        /**
-         * Converts type specifier from table of opcodes to user friendly string
-         */
-        public static function UICharToStr($char) {
-            switch($char) {
-                case '&':
-                    return "variable or constant";
-                case 'v':
-                    return "variable";
-                case 'l':
-                    return "label";
-                case 't':
-                    return "type specifier";
-            }
-        }
 
         /**
          * Check if given string is prolog or not
@@ -191,7 +154,7 @@
             $stringContent = '([^\x{0000}-\x{0020}\s\\\]|(\\\[0-9]{3}))*';
             $string = '/^(string@('.$stringContent.')|nil)$/u';
 
-            $int = '/^int@((-?[0-9]+)|(nil))$/';
+            $int = '/^int@((-?[0-9]+)|(\+?[0-9]+)|(nil))$/';
             $bool = '/^bool@(true|false|nil)$/';
             $nil = '/^nil@nil$/';
 
@@ -234,7 +197,7 @@
             $regex = '(';
 
             foreach ($arr as $str) {
-                if($regex !== '') {
+                if($regex !== '(') {
                     $regex .= '|';
                 }
 
@@ -348,9 +311,11 @@
                 FSM::$nextState = state::COMMENT;
             }
             else if(preg_match('/[.]/', $currentChar)) {
+                $scanner->clearStrBuffer();
                 FSM::$nextState = state::PROLOG;
             }
-            else if(preg_match('/[a-z_\-$&%*!?]/i', $currentChar)) {
+            else if(preg_match('/[a-z_\-+$&%*!?]/i', $currentChar)) {
+                $scanner->clearStrBuffer();
                 FSM::$nextState = state::DIRTY_TOKEN;
             }
             else if(preg_match('/[\r]/', $currentChar)) {

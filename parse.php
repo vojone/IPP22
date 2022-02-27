@@ -33,7 +33,8 @@
     $parser = new Parser($stdin, $stdout, $ui);
     $ret = $parser->parse();
 
-    if($ret = PARSE_SUCCESS) {
+
+    if($ret === PARSE_SUCCESS) {
         $ui->printStats();
     }
 

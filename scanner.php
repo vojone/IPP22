@@ -71,11 +71,14 @@
         }
 
         /**
-         * Returns value of token without prefixes
+         * Returns value of token without prefixes if it is literal
          * @return String Value of token without prefixes such as frame or data type
          */
         public function getPurifiedVal() {
             $tokenValue = $this->getVal();
+            if($this->getType() === type::VARIABLE) {
+                return $tokenValue;
+            }
 
             $argValue = null;
             if(strpos($tokenValue, '@') !== false) {
@@ -240,17 +243,10 @@
 
                 //Found corresponding transition function and process char with it
                 FSM::doTransition($this, $possibleTypes);
-
+                
                 //If type was not recognized, save current character to string buffer
                 if(empty($possibleTypes)) {
                     $this->strBuffer .= $this->curChar;
-                }
-
-                if(FSM::getState() !== state::DIRTY_TOKEN && 
-                   FSM::getNextState() !== state::DIRTY_TOKEN &&
-                   !in_array(state::DIRTY_TOKEN, $possibleTypes, true)) {
-
-                    $this->clearStrBuffer();
                 }
 
                 //Age next state (if it is given)
@@ -329,6 +325,7 @@
          */
         private function createToken($possibleTypes, $value) {
             $type = null;
+
             if(in_array(type::ERROR, $possibleTypes)) {
                 $type = type::ERROR;
             }
@@ -349,8 +346,6 @@
                 if($type === null) {
                     $type = $possibleTypes[0];
                 }
-    
-                $this->expected = array_shift($this->expected);
             }
             else {
                 $type = $possibleTypes[0];
@@ -360,13 +355,22 @@
             $token->setType($type);
             $token->setVal($value);
 
+            $this->updateExp($token);
+
             return $token;
         }
 
         /**
          * Updates array with expected types
          */
-        private function updateExp($type) {
+        private function updateExp($token) {
+            if(count($this->expected) > 0) {
+                array_shift($this->expected);
+            }
+
+            $value = strtoupper($token->getVal());
+            $type = $token->getType();
+
             if($type === type::OPCODE) {
                 $succesors = Table::OPERATION_CODES[$value];
                 

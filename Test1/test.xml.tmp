@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<program language="IPPcode22">
+	<instruction order="1" opcode="ADD">
+		<arg1 type="var">var</arg1>
+		<arg2 type="int">4556</arg2>
+		<arg3 type="int">789</arg3>
+	</instruction>
+</program>
