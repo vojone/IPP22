@@ -5,98 +5,382 @@
     </head>
 
     <body>
-    <style>
-        body {
-            background-color: whitesmoke;
-            font-family: Calibri;
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            styleFolders();
+        });
+
+        function styleFolders() {
+            var folders = document.getElementsByClassName('folder');
+
+            for(var i = 0; folders[i]; i++) {
+                var tests = folders[i].getElementsByClassName('fail');
+
+                if(tests.length > 0) {
+                    folders[i].className += ' fail';
+                }
+                else {
+                    folders[i].className += ' success';
+                }
+            }
         }
 
-        .leader {
-            order: 1;
-            background-color: white;
-            border-radius: 10px;
-            padding: 10px 10px 20px 20px;
+        function hideSuccessful() {
+            var button = document.getElementById('hideButton');
+
+            var succesfulTests = document.getElementsByClassName('success');
+
+            for(var i = 0; succesfulTests[i]; i++) {
+                if(succesfulTests[i].tagName.toUpperCase() == 'DIV') {
+                    succesfulTests[i].className += ' hide';
+                }
+            }
+
+            button.innerHTML = '<b>Show all tests</b>';
+            button.onclick = showAll;
         }
 
-        .header {
-            top: 0;
-            left: 0;
-            right: 0;
+        function showAll() {
+            var button = document.getElementById('hideButton');
 
-            margin-bottom: 10px;
+            var succesfulTests = document.getElementsByClassName('success');
+
+            for(var i = 0; succesfulTests[i]; i++) {
+                if(succesfulTests[i].tagName.toUpperCase() == 'DIV') {
+                    var hideIndex = succesfulTests[i].className.indexOf(' hide');
+                    if(hideIndex > 0) {
+                        succesfulTests[i].className = succesfulTests[i].className.slice(0, hideIndex);
+                    }
+                }
+            }
+
+            button.innerHTML = 'Show only failed tests';
+            button.onclick = hideSuccessful;
         }
 
-        .content {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-            width: 100%;
-        }
 
-        .item {
-            order: 2;
-            background-color: white;
-            border-radius: 10px;
-            padding: 10px 10px 20px 20px;
-            gab: 5px;
-        }
+    </script>
 
-        .item .wrapper {
-            display: flex;
-            flex-direction: row;
-            justify-content: space-around;
-        }
+<style>
+    body {
+        background-color: whitesmoke;
+        font-family: Calibri;
+    }
 
-        .item .details {
-            border: 1px solid black;
-            border-radius: 5px;
-            padding: 10px;
-            width: 30%;
-            overflow: auto;
-        }
+    div.leader {
+        order: 1;
+        background-color: white;
+        border-radius: 10px;
+        padding: 10px 10px 20px 20px;
+    }
 
-        div.success {
-            background-color: #c9ffd0;
-            border: 1px solid green;
-        }
+    div.header {
+        top: 0;
+        left: 0;
+        right: 0;
 
-        .success b, span.success {
-            color: green;
-        }
+        margin-bottom: 10px;
+    }
 
-        .info b, span.info {
-            color: #edc40e;
-        }
+    div.content {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+    }
 
-        div.fail {
-            background-color: #ffadad;
-            border: 1px solid red;
-        }
+    div.item {
+        order: 2;
+        background-color: white;
+        border-radius: 10px;
+        padding: 10px 10px 20px 20px;
 
-        .fail b, span.fail {
-            color: red;
-        }
+        margin-bottom: 10px;
+    }
 
-        .code {
-            font-family: Courier;
-        }
+    div.item h2 {
+        margin-top: 2px;
+    }
 
-    </style>
+    div.item .wrapper {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+    }
+
+    div.item .details {
+        border: 1px solid black;
+        border-radius: 5px;
+        padding: 10px;
+        width: 30%;
+        overflow: auto;
+    }
+
+    div.success {
+        background-color: #c9ffd0;
+        border: 1px solid green;
+    }
+
+    span.success {
+        color: green;
+    }
+
+    span.info {
+        color: #ff8f00;
+    }
+
+    div.fail {
+        background-color: #ffadad;
+        border: 1px solid red;
+    }
+
+    span.fail {
+        color: red;
+    }
+
+    .code {
+        font-family: Courier;
+    }
+
+    div.folder {
+        order: 2;
+
+        display: flex;
+        flex-direction: column;
+        padding: 10px;
+        border: 1px black solid;
+        border-radius: 10px;
+
+        background-color: transparent;
+
+        margin: 10px 0 10px 0;
+    }
+
+    div.folder.success {
+        background-color: #f5fff8;
+    }
+
+    div.folder.fail {
+        background-color: #ffeded;
+    }
+
+    span.additional {
+        font-weight: normal;
+        color: rgba(0, 0, 0, 0.5);
+        margin-right: 10px;
+    }
+
+    span.additional.files {
+        margin-left: 30px;
+        font-size: 0.6em;
+        word-spacing: 20px;
+    }
+
+    span.additional.folder * {
+        font-size: 0.7em;
+        text-decoration: none;
+        color: rgba(0, 0, 0, 0.3);
+    }
+
+    #hideButton {
+        text-decoration: underline;
+        cursor: pointer;
+        display: inline;
+        user-select: none;
+        color: blue;
+    }
+
+    #hideButton:hover {
+        color: purple;
+    }
+
+    .hide {
+        display: none !important;
+    }
+
+    .styleless {
+        text-decoration: none;
+        color: black;
+    }
+
+</style>
     <div class='header'></div>
-    <div class='content'>java -jar jexamxml/jexamxml.jar Test2/test.out Test2/test.xml.tmp Test2/test.diff /D jexamxml/options
-    <div class='item success'>
-        <h2>#1&nbsp&nbsp&nbsptest</h2>
-        <p><b>Pass!</b></p>
+    <div class='content'>    <div class='folder'>
+    <h4>
+        <span class='additional'>Folder:</span>&nbsp<a class='styleless' href='Tests/parse-only/'>Tests/parse-only/</a>
+    </h4>
+    <div class='item success ' id='1'>
+        
+<span class='additional folder' title='Folder with test'>
+    <a href='Tests/parse-only/'>
+        Tests/parse-only/
+    </a>
+</span>
+<h2>
+    <span class='additional' title='Order number'>
+        #1
+    </span>
+    <span title='Test name'>
+        header
+    </span>
+    <span class='additional files' title='Test files'>
+        <a href='Tests/parse-only/header.src'>source</a> 
+        <a href='Tests/parse-only/header.rc'>retcode</a> 
+        <a href='Tests/parse-only/header.in'>input</a> 
+        <a href='Tests/parse-only/header.out'>output</a>
+    </span>
+</h2>
+
+        <span class='success'><b>Pass!</b></span>
     </div>
 
+    <div class='item success ' id='2'>
+        
+<span class='additional folder' title='Folder with test'>
+    <a href='Tests/parse-only/'>
+        Tests/parse-only/
+    </a>
+</span>
+<h2>
+    <span class='additional' title='Order number'>
+        #2
+    </span>
+    <span title='Test name'>
+        headerOK
+    </span>
+    <span class='additional files' title='Test files'>
+        <a href='Tests/parse-only/headerOK.src'>source</a> 
+        <a href='Tests/parse-only/headerOK.rc'>retcode</a> 
+        <a href='Tests/parse-only/headerOK.in'>input</a> 
+        <a href='Tests/parse-only/headerOK.out'>output</a>
+    </span>
+</h2>
+
+        <span class='success'><b>Pass!</b></span>
+    </div>
+
+    <div class='item success ' id='3'>
+        
+<span class='additional folder' title='Folder with test'>
+    <a href='Tests/parse-only/'>
+        Tests/parse-only/
+    </a>
+</span>
+<h2>
+    <span class='additional' title='Order number'>
+        #3
+    </span>
+    <span title='Test name'>
+        read_test
+    </span>
+    <span class='additional files' title='Test files'>
+        <a href='Tests/parse-only/read_test.src'>source</a> 
+        <a href='Tests/parse-only/read_test.rc'>retcode</a> 
+        <a href='Tests/parse-only/read_test.in'>input</a> 
+        <a href='Tests/parse-only/read_test.out'>output</a>
+    </span>
+</h2>
+
+        <span class='success'><b>Pass!</b></span>
+    </div>
+
+    <div class='item success ' id='4'>
+        
+<span class='additional folder' title='Folder with test'>
+    <a href='Tests/parse-only/'>
+        Tests/parse-only/
+    </a>
+</span>
+<h2>
+    <span class='additional' title='Order number'>
+        #4
+    </span>
+    <span title='Test name'>
+        simple_tag
+    </span>
+    <span class='additional files' title='Test files'>
+        <a href='Tests/parse-only/simple_tag.src'>source</a> 
+        <a href='Tests/parse-only/simple_tag.rc'>retcode</a> 
+        <a href='Tests/parse-only/simple_tag.in'>input</a> 
+        <a href='Tests/parse-only/simple_tag.out'>output</a>
+    </span>
+</h2>
+
+        <span class='success'><b>Pass!</b></span>
+    </div>
+
+    <div class='item success ' id='5'>
+        
+<span class='additional folder' title='Folder with test'>
+    <a href='Tests/parse-only/'>
+        Tests/parse-only/
+    </a>
+</span>
+<h2>
+    <span class='additional' title='Order number'>
+        #5
+    </span>
+    <span title='Test name'>
+        write_test
+    </span>
+    <span class='additional files' title='Test files'>
+        <a href='Tests/parse-only/write_test.src'>source</a> 
+        <a href='Tests/parse-only/write_test.rc'>retcode</a> 
+        <a href='Tests/parse-only/write_test.in'>input</a> 
+        <a href='Tests/parse-only/write_test.out'>output</a>
+    </span>
+</h2>
+
+        <span class='success'><b>Pass!</b></span>
+    </div>
+    <div class='folder'>
+    <h4>
+        <span class='additional'>Folder:</span>&nbsp<a class='styleless' href='Tests/parse-only/underfolder/'>Tests/parse-only/underfolder/</a>
+    </h4>
+    <div class='item fail ' id='6'>
+
+<span class='additional folder' title='Folder with test'>
+    <a href='Tests/parse-only/underfolder/'>
+        Tests/parse-only/underfolder/
+    </a>
+</span>
+<h2>
+    <span class='additional' title='Order number'>
+        #6
+    </span>
+    <span title='Test name'>
+        write_test - kopie
+    </span>
+    <span class='additional files' title='Test files'>
+        <a href='Tests/parse-only/underfolder/write_test - kopie.src'>source</a> 
+        <a href='Tests/parse-only/underfolder/write_test - kopie.rc'>retcode</a> 
+        <a href='Tests/parse-only/underfolder/write_test - kopie.in'>input</a> 
+        <a href='Tests/parse-only/underfolder/write_test - kopie.out'>output</a>
+    </span>
+</h2>
+
+        <h3><span class='fail'><b>Failed!</b></span></h3>
+        <div class='wrapper'>
+            <div class='details'>Expected:<span class='code'><pre></pre></span></div>
+            <div class='details'>Got:<span class='code'><pre></pre></span></div>
+            <div class='details'>Differences:<span class='code'><pre>Return codes differ! (expected: 0, got: 23)
+</pre></span></div>
+        </div>
+    </div>
+    </div>    </div>
     <div class='leader'>
         <h1>Tests summary</h1>
-        Test results from: &nbsp &nbsp <span class='code'>2022-02-27 00:33:16</span><br>
-                           Command: &nbsp &nbsp <span class='code'>test.php --directory=Test2 --recursive --parse-only --noclean </span><br>
-                           Result: <b><span class='success'>1</span></b>/1 (passed/total)<br><br>
-                           <span class='success'>Well done! All tests passed!</span>
-    </div>
-    </div>
+        Test results from: &nbsp &nbsp <span class='code'>2022-03-02 22:32:53</span><br>
+        Command: &nbsp &nbsp <span class='code'>test.php --directory=Tests/parse-only --parse-only --recursive </span>
+        <br>
+        <br>Result: &nbsp &nbsp <span class='fail'><b>5</b></span>/6 (passed/total)<br>        <br>
+        <br>
+        Use CTRL-F to find specific test by name.
+        <br>
+        <br>
+        <div onclick='hideSuccessful()' id='hideButton'>
+            Show only failed tests
+        </div>
+    </div>    </div>
     </body>
 </html>
     

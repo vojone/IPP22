@@ -267,7 +267,9 @@
 
         //Clears buffer with currently processed string (token)
         public function clearStrBuffer() {
-            $this->cursorPosition['COL'] += strlen($this->strBuffer);
+            if($this->strBuffer !== null) {
+                $this->cursorPosition['COL'] += strlen($this->strBuffer);
+            }
 
             $this->strBuffer = null;
         }
