@@ -360,11 +360,13 @@
 
                     $this->clearDir($test);
                 }
+            }
 
-                if($recursive) {
-                    $this->testInnerFolders($dir); //Indirect recursion of run function
-                }
+            if($recursive) {
+                $this->testInnerFolders($dir); //Indirect recursion of run function
+            }
 
+            if(count($srcs) > 0) {
                 HTML::endFolder();
             }
         }
