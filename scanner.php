@@ -3,8 +3,8 @@
      *                                  IPP project                           *  
      *                                  scanner.php                           *
      *                                                                        *
-     *                                 Vojtech Dvorak                         *
-     *                                 February 2022                          *
+     *                            Vojtech Dvorak (xdvora3o)                   *
+     *                                   March 2022                           *
      *************************************************************************/
 
     require_once 'tables.php';
@@ -97,7 +97,7 @@
      * Reads one token from input (it can be also EOF, newline or error token)
      * and determines its type
      * 
-     * Because it interacts with input, there can be only one scanner (implemented as singleton) to
+     * Because it interacts with input, there can be only one scanner (implemented as SINGLETON) to
      * make input consitent
      */
     class Scanner {
@@ -141,6 +141,11 @@
         private $expected;
 
         /**
+         * @var StatCollector Object that provides collecting of statistics
+         */
+        public $statCollector;
+
+        /**
          * Scanner constructor
          * @param Resource $input Input file where can be source code read
          */
@@ -154,6 +159,8 @@
             $this->expected = array();
             $this->strBuffer = null;
             $this->charBuffer = null;
+
+            $this->statCollector = StatCollector::instantiate();
         }
 
         /**
@@ -161,11 +168,10 @@
          */
         public static function instantiate($input) {
             if(Scanner::$inst === null) {
-                return new Scanner($input);
+                Scanner::$inst = new Scanner($input);
             }
-            else {
-                return Scanner::$inst;
-            }
+            
+            return Scanner::$inst;
         }
 
         /**

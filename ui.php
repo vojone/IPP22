@@ -4,17 +4,25 @@
      *                                    ui.php                              *
      *                                                                        *
      *                                 Vojtech Dvorak                         *
-     *                                  February 2022                         *
+     *                                   March 2022                           *
      *************************************************************************/
 
     define('SUCCESS', 0);
-    define('INVALID_ARG_COMBINATION', 0);
+    define('INVALID_ARG_COMBINATION', 10);
+    define('FILE_ERROR', 12);
+    
+    require_once 'stat.php';
 
     /**
      * Provides commnication interface with user 
-     * (error printing, collecting of stats...)
+     * (argument parsing, error message printing)
      */
     class UI {
+        /**
+         * @var Scanner Scanner object
+         */
+        private $scanner;
+
         /**
          * @var Boolean $helpFlag signalizes that --help flag was used
          */
@@ -24,16 +32,6 @@
          * @var Boolean $statFlag signalizes that --stats flag was used
          */
         private $statFlag;
-        
-        /**
-         * @var Array $stats contains specification of chosen statistic info
-         */
-        private $stats;
-
-        /**
-         * @var Scanner $scanner object with current position of cursor
-         */
-        private $scanner;
 
         /**
          * @var Resource $output where will be printed help
@@ -52,14 +50,19 @@
 
         private const SHORT_OPTIONS = '';
 
+
         public function __construct($input, $output, $errOut) {
-            $this->scanner = Scanner::instantiate($input);
             $this->output = $output;
             $this->errOut = $errOut;
+
+            $this->scanner = Scanner::instantiate($input);
         }
 
-
-        public function parseArgs() {
+        /**
+         * Parse arguments and check presence of --help option
+         * @param Array $argv Argument vector from main body of script
+         */
+        public function parseArgs($argv) {
             $args = getopt(UI::SHORT_OPTIONS, UI::LONG_OPTIONS);
 
             if(isset($args['help'])) {
@@ -70,21 +73,61 @@
                     $this->helpFlag = true;
                 }
             }
+
+            if(!$this->helpFlag && count($args) > 0) {
+                $this->checkArgs($argv, $args);
+            }
         }
 
         /**
-         * Help flage getter
+         * Checks validity arguments and parses it
+         */
+        private function checkArgs($argv, $args) {
+            $statCollector = StatCollector::instantiate();
+
+            $statsIndex = 0;
+            $stats = array();
+            $activeFilename = null;
+            foreach ($argv as $order => $arg) {
+                if($order === 0) {
+                    continue;
+                }
+
+                if(preg_match('/^--stats=.*$/i', $arg)) {
+                    $activeFilename = $args['stats'][$statsIndex];
+                    
+                    //There cannot be two groups of statistics in one file
+                    if(array_key_exists($activeFilename, $stats)) { 
+                        $this->usageError(FILE_ERROR, "Nelze zapsat do jednoho souboru (soubor '{$activeFilename}') dvě skupiny statistik!");
+                    }
+                    else {
+                        $stats[$activeFilename] = array();
+                        $statsIndex++;
+                    }
+                }
+                else {
+
+                    //File must be set before adding statistics flags
+                    if($activeFilename === null) {
+                        $this->usageError(INVALID_ARG_COMBINATION, "chybí přepínač --stats=\"FILE\" před přepínačem {$arg}!");
+                    }
+                    else {
+                        $arg = substr_replace($arg, '', 0, 2);
+                        if(isset($args[$arg])) {
+                            $stats[$activeFilename][$arg] = 0;
+                        }
+                    }
+                }
+            }
+
+            $statCollector->setStats($stats);    
+        }
+
+        /**
+         * Help flag getter
          */
         public function wasHelpCalled() {
             return $this->helpFlag;
-        }
-
-        public function updateStats() {
-
-        }
-
-        public function printStats() {
-            
         }
 
         /**
@@ -118,7 +161,7 @@
                 case 'v':
                     return "proměnná";
                 case 'l':
-                    return "návěští";
+                    return "název návěští";
                 case 't':
                     return "typový specifikátor";
             }

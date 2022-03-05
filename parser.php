@@ -1,15 +1,16 @@
 <?php
     /**************************************************************************
      *                                  IPP project                           *  
-     *                                  parser.php                           *
+     *                                  parser.php                            *
      *                                                                        *
-     *                                 Vojtech Dvorak                         *
-     *                                 February 2022                          *
+     *                            Vojtech Dvorak (xdvora3o)                   *
+     *                                   March 2022                           *
      *************************************************************************/
 
 
     require_once 'scanner.php';
     require_once 'ui.php';
+    require_once 'stat.php';
     require_once 'printer.php';
 
     //Return codes of the parser
@@ -60,6 +61,7 @@
          */
         function __construct($input, $output, $ui) {
             $this->scanner = Scanner::instantiate($input);
+            $this->statCollector = StatCollector::instantiate();
 
             $this->printer = new XMLPrinter($output, "\t", 1);
 
@@ -159,11 +161,26 @@
                 return false;
             }
 
-
+    
             $this->printer->startInstruction($op->getVal(), $this->insOrd);
 
-            if(!$this->checkArgs($op, $retCode)) {
+            $args = array();
+            if(!$this->checkArgs($op, $args, $retCode)) {
                 return false;
+            }
+
+            $this->statCollector->incStats('loc'); //Increase line of code counter
+            $row = $this->scanner->getCursorPosition()['ROW'];
+            if(in_array(strtoupper($op->getVal()), Table::JUMP_OP)) {
+                $this->statCollector->incStats('jumps');
+
+                if(isset($args[0])) {
+                    $this->statCollector->addJump($args[0]->getVal(), $row);
+                }
+            }
+            
+            if(strtoupper($op->getVal()) === 'LABEL') {
+                $this->statCollector->addLabel($args[0]->getVal(), $row);
             }
 
             $this->printer->endInstruction();
@@ -176,9 +193,12 @@
         /**
          * Checks arguments and prints of instruction
          * @param Token $op Token with intruction its arguments should be checked
+         * @param Array $args Array that will be filled with valid arguments
          * @return Bool True if arguments are OK
          */
-        private function checkArgs($op, &$retCode) {
+        private function checkArgs($op, &$args, &$retCode) {
+            $args = array();
+
             $expArgs = Table::OPERATION_CODES[strtoupper($op->getVal())];
             $argNum = strlen($expArgs);
             for($i = 1; $i <= $argNum; $i++) {
@@ -202,6 +222,8 @@
                     $retCode = OTHER_ERROR;
                     return false;
                 }
+                
+                array_push($args, $token);
 
                 $argValue = $token->getPurifiedVal();
                 $type = Table::typeToStr($token->getType());
@@ -278,6 +300,9 @@
 
             if($retCode === PARSE_SUCCESS) {
                 $this->printer->printXML();
+
+                StatCollector::$inst->calculateStats();
+                StatCollector::$inst->printStats();
             }
 
             return $retCode;

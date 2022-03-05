@@ -3,8 +3,8 @@
      *                                  IPP project                           *  
      *                                  printer.php                           *
      *                                                                        *
-     *                                 Vojtech Dvorak                         *
-     *                                 February 2022                          *
+     *                           Vojtech Dvorak (xdvora3o)                    *
+     *                                    March 2022                          *
      *************************************************************************/
 
     /**

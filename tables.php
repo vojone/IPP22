@@ -4,8 +4,8 @@
      *                                   tables.php                           *
      *  Contains statical classes defining lexical aspects of source language *
      *                                                                        *
-     *                                 Vojtech Dvorak                         *
-     *                                 February 2022                          *
+     *                            Vojtech Dvorak (xdvora3o)                   *
+     *                                   March 2022                           *
      *************************************************************************/
 
     /**
@@ -37,6 +37,14 @@
             'TYPE' => 'v&', 'LABEL' => 'l', 'JUMP' => 'l', 
             'JUMPIFEQ' => 'l&&', 'JUMPIFNEQ' => 'l&&', 'EXIT' => '&', 
             'DPRINT' => '&', 'BREAK' => ''
+        );
+
+        /**
+         * @var Array Contains all opcodes from OPERATION_CODES of operations
+         * performing jumps (it is important for statistics)
+         */
+        public const JUMP_OP = array(
+            'CALL', 'RETURN', 'JUMP', 'JUMP', 'JUMPIFEQ', 'JUMPIFNEQ'
         );
 
         public const FRAME_CODES = array(
@@ -308,6 +316,7 @@
                 FSM::$nextState = state::INIT;
             }
             else if(preg_match('/[#]/', $currentChar)) {
+                StatCollector::$inst->incStats('comments');
                 FSM::$nextState = state::COMMENT;
             }
             else if(preg_match('/[.]/', $currentChar)) {
