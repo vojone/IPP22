@@ -1,0 +1,11 @@
+.Ippcode22
+
+LABEL label
+
+JUMP label
+
+JUMPIFEQ ADD int@123 nil@nil
+
+JUMPIFNEQ SUB string@abc string@abc
+
+LABEL ADD

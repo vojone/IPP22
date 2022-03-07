@@ -54,10 +54,16 @@
             $this->value = $newValue;
         }
 
+        /**
+         * Type getter
+         */
         public function getType() {
             return $this->type;
         }
 
+        /**
+         * Value getter
+         */
         public function getVal() {
             if($this->type == type::EOF) {
                 return 'EOF';
@@ -154,7 +160,8 @@
         }
 
         /**
-         * Constructor of singleton instance of Scanner 
+         * Constructor of singleton instance of Scanner
+         * @var Resource $input 
          */
         public static function instantiate($input) {
             if(Scanner::$inst === null) {
@@ -326,6 +333,9 @@
 
         /**
          * Creates token and initializes due to lexical analysis
+         * @param Array $possibleTypes Array with expecting types
+         * @param String $value Value of token
+         * @return Token Newly created token object
          */
         private function createToken($possibleTypes, $value) {
             $type = null;
@@ -365,6 +375,7 @@
 
         /**
          * Updates array with expected types
+         * @param Token $token Currently returned token
          */
         private function updateExp($type) {
             if($type === type::OPCODE) {

@@ -1,0 +1,21 @@
+.Ippcode22
+
+ADD GF@a int@123 int@456
+
+SUB GF@a string@abc
+
+MUL GF@a bool@true bool@false
+
+IDIV LF@a int@123 int@456
+
+LT TF@ab int@+123 int@-456
+
+GT TF@ab int@123 int@456
+
+EQ TF@ab int@123 int@456
+
+AND TF@ab int@123 int@456
+
+OR TF@ab int@123 int@456
+
+NOT TF@ab bool@true

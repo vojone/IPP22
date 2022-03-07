@@ -87,6 +87,7 @@
 
         /**
          * Takes one next token from buffer or from input and check its validity
+         * @param Bool $lexErrTolerant If it is True it ignores error token
          */
         private function getNextToken() {
             $token = null;
@@ -165,6 +166,8 @@
                 return false;
             }
 
+            $this->updateStats($op, $args);
+
             $this->printer->endInstruction();
 
             $this->insOrd++;
@@ -173,8 +176,38 @@
         }
 
         /**
+         * Updates statistics due to instruction, needs to be called after every parsed instruction
+         * @param Token $op Token with parsed instruction
+         * @param Array $args Array of with token objects, parsed arguments of operations 
+         */
+        private function updateStats($op, $args) {
+            $this->statCollector->incStats('loc'); //Increase line of code counter
+
+            $row = $this->scanner->getCursorPosition()['ROW'];
+            $opVal = $op->getVal();
+            if(Table::searchInstr(Table::JUMP_OP, $opVal, false) ||
+               Table::searchInstr(Table::FUNC_OP, $opVal, false)) {
+                $this->statCollector->incStats('jumps'); //Increase counters of jumps
+            }
+
+            if(Table::searchInstr(Table::JUMP_OP, $opVal, false)) {
+                if(isset($args[0])) { //For sure
+                    $this->statCollector->addJump($args[0]->getVal(), $row);
+                }
+            }
+            
+            if(strtoupper($opVal) === 'LABEL') {
+                if(isset($args[0])) { //For sure
+                    $this->statCollector->addLabel($args[0]->getVal(), $row);
+                }
+            }
+        }
+
+        /**
          * Checks arguments and prints of instruction
          * @param Token $op Token with intruction its arguments should be checked
+         * @param Array $args Array that will be filled with valid arguments
+         * @param Integet $retCode Output parameter with return code
          * @return Bool True if arguments are OK
          */
         private function checkArgs($op) {
@@ -274,6 +307,9 @@
 
             if($retCode === PARSE_SUCCESS) {
                 $this->printer->printXML();
+
+                $this->statCollector->calculateStats();
+                $this->statCollector->printStats();
             }
 
             return $retCode;

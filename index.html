@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>IPPcode22 test framework</title>
+    </head>
+
+    <body>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            styleFolders();
+        });
+
+        function styleFolders() {
+            var folders = document.getElementsByClassName('folder');
+
+            for(var i = 0; folders[i]; i++) {
+                var tests = folders[i].getElementsByClassName('fail');
+
+                if(tests.length > 0) {
+                    folders[i].className += ' fail';
+                }
+                else {
+                    folders[i].className += ' success';
+                }
+            }
+        }
+
+        function hideSuccessful() {
+            var button = document.getElementById('hideButton');
+
+            var succesfulTests = document.getElementsByClassName('success');
+
+            for(var i = 0; succesfulTests[i]; i++) {
+                if(succesfulTests[i].tagName.toUpperCase() == 'DIV') {
+                    succesfulTests[i].className += ' hide';
+                }
+            }
+
+            button.innerHTML = '<b>Show all tests</b>';
+            button.onclick = showAll;
+        }
+
+        function showAll() {
+            var button = document.getElementById('hideButton');
+
+            var succesfulTests = document.getElementsByClassName('success');
+
+            for(var i = 0; succesfulTests[i]; i++) {
+                if(succesfulTests[i].tagName.toUpperCase() == 'DIV') {
+                    var hideIndex = succesfulTests[i].className.indexOf(' hide');
+                    if(hideIndex > 0) {
+                        succesfulTests[i].className = succesfulTests[i].className.slice(0, hideIndex);
+                    }
+                }
+            }
+
+            button.innerHTML = 'Show only failed tests';
+            button.onclick = hideSuccessful;
+        }
+
+
+    </script>
+
+<style>
+    body {
+        background-color: whitesmoke;
+        font-family: Calibri;
+    }
+
+    div.leader {
+        order: 1;
+        background-color: white;
+        border-radius: 10px;
+        padding: 10px 10px 20px 20px;
+    }
+
+    div.header {
+        top: 0;
+        left: 0;
+        right: 0;
+
+        margin-bottom: 10px;
+    }
+
+    div.content {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+    }
+
+    div.item {
+        order: 2;
+        background-color: white;
+        border-radius: 10px;
+        padding: 10px 10px 20px 20px;
+
+        margin-bottom: 10px;
+    }
+
+    div.item h2 {
+        margin-top: 2px;
+    }
+
+    div.item .wrapper {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+    }
+
+    div.item .details {
+        border: 1px solid black;
+        border-radius: 5px;
+        padding: 10px;
+        width: 30%;
+        overflow: auto;
+    }
+
+    div.success {
+        background-color: #c9ffd0;
+        border: 1px solid green;
+    }
+
+    span.success {
+        color: green;
+    }
+
+    span.info {
+        color: #ff8f00;
+    }
+
+    div.fail {
+        background-color: #ffadad;
+        border: 1px solid red;
+    }
+
+    span.fail {
+        color: red;
+    }
+
+    .code {
+        font-family: Courier;
+    }
+
+    div.folder {
+        order: 2;
+
+        display: flex;
+        flex-direction: column;
+        padding: 10px;
+        border: 1px black solid;
+        border-radius: 10px;
+
+        background-color: transparent;
+
+        margin: 10px 0 10px 0;
+    }
+
+    div.folder.success {
+        background-color: #f5fff8;
+    }
+
+    div.folder.fail {
+        background-color: #ffeded;
+    }
+
+    span.additional {
+        font-weight: normal;
+        color: rgba(0, 0, 0, 0.5);
+        margin-right: 10px;
+    }
+
+    span.additional.files {
+        margin-left: 30px;
+        font-size: 0.6em;
+        word-spacing: 20px;
+    }
+
+    span.additional.folder * {
+        font-size: 0.7em;
+        text-decoration: none;
+        color: rgba(0, 0, 0, 0.3);
+    }
+
+    #hideButton {
+        text-decoration: underline;
+        cursor: pointer;
+        display: inline;
+        user-select: none;
+        color: blue;
+    }
+
+    #hideButton:hover {
+        color: purple;
+    }
+
+    .hide {
+        display: none !important;
+    }
+
+    .styleless {
+        text-decoration: none;
+        color: black;
+    }
+
+</style>
+    <div class='header'></div>
+    <div class='content'>    <div class='folder'>
+    <h4>
+        <span class='additional'>Folder:</span>&nbsp<a class='styleless' href='Tests/parse-only/'>Tests/parse-only/</a>
+    </h4>
+    <div class='item success ' id='1'>
+        
+<span class='additional folder' title='Folder with test'>
+    <a href='Tests/parse-only/'>
+        Tests/parse-only/
+    </a>
+</span>
+<h2>
+    <span class='additional' title='Order number'>
+        #1
+    </span>
+    <span title='Test name'>
+        arithmetics
+    </span>
+    <span class='additional files' title='Test files'>
+        <a href='Tests/parse-only/arithmetics.src'>source</a> 
+        <a href='Tests/parse-only/arithmetics.rc'>retcode</a> 
+        <a href='Tests/parse-only/arithmetics.in'>input</a> 
+        <a href='Tests/parse-only/arithmetics.out'>output</a>
+    </span>
+</h2>
+
+        <span class='success'><b>Pass!</b></span>
+    </div>
+
+    <div class='item success ' id='2'>
+        
+<span class='additional folder' title='Folder with test'>
+    <a href='Tests/parse-only/'>
+        Tests/parse-only/
+    </a>
+</span>
+<h2>
+    <span class='additional' title='Order number'>
+        #2
+    </span>
+    <span title='Test name'>
+        badarithmetics1
+    </span>
+    <span class='additional files' title='Test files'>
+        <a href='Tests/parse-only/badarithmetics1.src'>source</a> 
+        <a href='Tests/parse-only/badarithmetics1.rc'>retcode</a> 
+        <a href='Tests/parse-only/badarithmetics1.in'>input</a> 
+        <a href='Tests/parse-only/badarithmetics1.out'>output</a>
+    </span>
+</h2>
+
+        <span class='success'><b>Pass!</b></span>
+    </div>
+
+    <div class='item success ' id='3'>
+        
+<span class='additional folder' title='Folder with test'>
+    <a href='Tests/parse-only/'>
+        Tests/parse-only/
+    </a>
+</span>
+<h2>
+    <span class='additional' title='Order number'>
+        #3
+    </span>
+    <span title='Test name'>
+        badarithmetics2
+    </span>
+    <span class='additional files' title='Test files'>
+        <a href='Tests/parse-only/badarithmetics2.src'>source</a> 
+        <a href='Tests/parse-only/badarithmetics2.rc'>retcode</a> 
+        <a href='Tests/parse-only/badarithmetics2.in'>input</a> 
+        <a href='Tests/parse-only/badarithmetics2.out'>output</a>
+    </span>
+</h2>
+
+        <span class='success'><b>Pass!</b></span>
+    </div>
+
+    <div class='item success ' id='4'>
+        
+<span class='additional folder' title='Folder with test'>
+    <a href='Tests/parse-only/'>
+        Tests/parse-only/
+    </a>
+</span>
+<h2>
+    <span class='additional' title='Order number'>
+        #4
+    </span>
+    <span title='Test name'>
+        badarithmetics3
+    </span>
+    <span class='additional files' title='Test files'>
+        <a href='Tests/parse-only/badarithmetics3.src'>source</a> 
+        <a href='Tests/parse-only/badarithmetics3.rc'>retcode</a> 
+        <a href='Tests/parse-only/badarithmetics3.in'>input</a> 
+        <a href='Tests/parse-only/badarithmetics3.out'>output</a>
+    </span>
+</h2>
+
+        <span class='success'><b>Pass!</b></span>
+    </div>
+
+    <div class='item success ' id='5'>
+        
+<span class='additional folder' title='Folder with test'>
+    <a href='Tests/parse-only/'>
+        Tests/parse-only/
+    </a>
+</span>
+<h2>
+    <span class='additional' title='Order number'>
+        #5
+    </span>
+    <span title='Test name'>
+        badheader
+    </span>
+    <span class='additional files' title='Test files'>
+        <a href='Tests/parse-only/badheader.src'>source</a> 
+        <a href='Tests/parse-only/badheader.rc'>retcode</a> 
+        <a href='Tests/parse-only/badheader.in'>input</a> 
+        <a href='Tests/parse-only/badheader.out'>output</a>
+    </span>
+</h2>
+
+        <span class='success'><b>Pass!</b></span>
+    </div>
+
+    <div class='item success ' id='6'>
+        
+<span class='additional folder' title='Folder with test'>
+    <a href='Tests/parse-only/'>
+        Tests/parse-only/
+    </a>
+</span>
+<h2>
+    <span class='additional' title='Order number'>
+        #6
+    </span>
+    <span title='Test name'>
+        badintegerformats
+    </span>
+    <span class='additional files' title='Test files'>
+        <a href='Tests/parse-only/badintegerformats.src'>source</a> 
+        <a href='Tests/parse-only/badintegerformats.rc'>retcode</a> 
+        <a href='Tests/parse-only/badintegerformats.in'>input</a> 
+        <a href='Tests/parse-only/badintegerformats.out'>output</a>
+    </span>
+</h2>
+
+        <span class='success'><b>Pass!</b></span>
+    </div>
+
+    <div class='item success ' id='7'>
+        
+<span class='additional folder' title='Folder with test'>
+    <a href='Tests/parse-only/'>
+        Tests/parse-only/
+    </a>
+</span>
+<h2>
+    <span class='additional' title='Order number'>
+        #7
+    </span>
+    <span title='Test name'>
+        badopcode
+    </span>
+    <span class='additional files' title='Test files'>
+        <a href='Tests/parse-only/badopcode.src'>source</a> 
+        <a href='Tests/parse-only/badopcode.rc'>retcode</a> 
+        <a href='Tests/parse-only/badopcode.in'>input</a> 
+        <a href='Tests/parse-only/badopcode.out'>output</a>
+    </span>
+</h2>
+
+        <span class='success'><b>Pass!</b></span>
+    </div>
+
+    <div class='item success ' id='8'>
+        
+<span class='additional folder' title='Folder with test'>
+    <a href='Tests/parse-only/'>
+        Tests/parse-only/
+    </a>
+</span>
+<h2>
+    <span class='additional' title='Order number'>
+        #8
+    </span>
+    <span title='Test name'>
+        comments
+    </span>
+    <span class='additional files' title='Test files'>
+        <a href='Tests/parse-only/comments.src'>source</a> 
+        <a href='Tests/parse-only/comments.rc'>retcode</a> 
+        <a href='Tests/parse-only/comments.in'>input</a> 
+        <a href='Tests/parse-only/comments.out'>output</a>
+    </span>
+</h2>
+
+        <span class='success'><b>Pass!</b></span>
+    </div>
+
+    <div class='item success ' id='9'>
+        
+<span class='additional folder' title='Folder with test'>
+    <a href='Tests/parse-only/'>
+        Tests/parse-only/
+    </a>
+</span>
+<h2>
+    <span class='additional' title='Order number'>
+        #9
+    </span>
+    <span title='Test name'>
+        complex1
+    </span>
+    <span class='additional files' title='Test files'>
+        <a href='Tests/parse-only/complex1.src'>source</a> 
+        <a href='Tests/parse-only/complex1.rc'>retcode</a> 
+        <a href='Tests/parse-only/complex1.in'>input</a> 
+        <a href='Tests/parse-only/complex1.out'>output</a>
+    </span>
+</h2>
+
+        <span class='success'><b>Pass!</b></span>
+    </div>
+
+    <div class='item success ' id='10'>
+        
+<span class='additional folder' title='Folder with test'>
+    <a href='Tests/parse-only/'>
+        Tests/parse-only/
+    </a>
+</span>
+<h2>
+    <span class='additional' title='Order number'>
+        #10
+    </span>
+    <span title='Test name'>
+        empty
+    </span>
+    <span class='additional files' title='Test files'>
+        <a href='Tests/parse-only/empty.src'>source</a> 
+        <a href='Tests/parse-only/empty.rc'>retcode</a> 
+        <a href='Tests/parse-only/empty.in'>input</a> 
+        <a href='Tests/parse-only/empty.out'>output</a>
+    </span>
+</h2>
+
+        <span class='success'><b>Pass!</b></span>
+    </div>
+
+    <div class='item success ' id='11'>
+        
+<span class='additional folder' title='Folder with test'>
+    <a href='Tests/parse-only/'>
+        Tests/parse-only/
+    </a>
+</span>
+<h2>
+    <span class='additional' title='Order number'>
+        #11
+    </span>
+    <span title='Test name'>
+        function
+    </span>
+    <span class='additional files' title='Test files'>
+        <a href='Tests/parse-only/function.src'>source</a> 
+        <a href='Tests/parse-only/function.rc'>retcode</a> 
+        <a href='Tests/parse-only/function.in'>input</a> 
+        <a href='Tests/parse-only/function.out'>output</a>
+    </span>
+</h2>
+
+        <span class='success'><b>Pass!</b></span>
+    </div>
+
+    <div class='item success ' id='12'>
+        
+<span class='additional folder' title='Folder with test'>
+    <a href='Tests/parse-only/'>
+        Tests/parse-only/
+    </a>
+</span>
+<h2>
+    <span class='additional' title='Order number'>
+        #12
+    </span>
+    <span title='Test name'>
+        header
+    </span>
+    <span class='additional files' title='Test files'>
+        <a href='Tests/parse-only/header.src'>source</a> 
+        <a href='Tests/parse-only/header.rc'>retcode</a> 
+        <a href='Tests/parse-only/header.in'>input</a> 
+        <a href='Tests/parse-only/header.out'>output</a>
+    </span>
+</h2>
+
+        <span class='success'><b>Pass!</b></span>
+    </div>
+
+    <div class='item success ' id='13'>
+        
+<span class='additional folder' title='Folder with test'>
+    <a href='Tests/parse-only/'>
+        Tests/parse-only/
+    </a>
+</span>
+<h2>
+    <span class='additional' title='Order number'>
+        #13
+    </span>
+    <span title='Test name'>
+        integerformats
+    </span>
+    <span class='additional files' title='Test files'>
+        <a href='Tests/parse-only/integerformats.src'>source</a> 
+        <a href='Tests/parse-only/integerformats.rc'>retcode</a> 
+        <a href='Tests/parse-only/integerformats.in'>input</a> 
+        <a href='Tests/parse-only/integerformats.out'>output</a>
+    </span>
+</h2>
+
+        <span class='success'><b>Pass!</b></span>
+    </div>
+
+    <div class='item success ' id='14'>
+        
+<span class='additional folder' title='Folder with test'>
+    <a href='Tests/parse-only/'>
+        Tests/parse-only/
+    </a>
+</span>
+<h2>
+    <span class='additional' title='Order number'>
+        #14
+    </span>
+    <span title='Test name'>
+        jumps
+    </span>
+    <span class='additional files' title='Test files'>
+        <a href='Tests/parse-only/jumps.src'>source</a> 
+        <a href='Tests/parse-only/jumps.rc'>retcode</a> 
+        <a href='Tests/parse-only/jumps.in'>input</a> 
+        <a href='Tests/parse-only/jumps.out'>output</a>
+    </span>
+</h2>
+
+        <span class='success'><b>Pass!</b></span>
+    </div>
+
+    <div class='item success ' id='15'>
+        
+<span class='additional folder' title='Folder with test'>
+    <a href='Tests/parse-only/'>
+        Tests/parse-only/
+    </a>
+</span>
+<h2>
+    <span class='additional' title='Order number'>
+        #15
+    </span>
+    <span title='Test name'>
+        specialchars
+    </span>
+    <span class='additional files' title='Test files'>
+        <a href='Tests/parse-only/specialchars.src'>source</a> 
+        <a href='Tests/parse-only/specialchars.rc'>retcode</a> 
+        <a href='Tests/parse-only/specialchars.in'>input</a> 
+        <a href='Tests/parse-only/specialchars.out'>output</a>
+    </span>
+</h2>
+
+        <span class='success'><b>Pass!</b></span>
+    </div>
+    </div>
+    <div class='leader'>
+        <h1>Tests summary</h1>
+        Test results from: &nbsp &nbsp <span class='code'>2022-03-07 20:41:22</span><br>
+        Command: &nbsp &nbsp <span class='code'>test.php --parse-only --directory=Tests/parse-only --recursive </span>
+        <br>
+        <br>Result: &nbsp &nbsp <span class='success'><b>15</b></span>/15 (passed/total)<br><span class='success'><b>Well done! All tests passed!</b></span>        <br>
+        <br>
+        Use CTRL-F to find specific test by name.
+        <br>
+        <br>
+        <div onclick='hideSuccessful()' id='hideButton'>
+            Show only failed tests
+        </div>
+    </div>    </div>
+    </body>
+</html>
+    

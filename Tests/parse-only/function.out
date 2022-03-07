@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<program language="IPPcode22">
+    <instruction opcode='CALL' order='1'>
+        <arg1 type='label'>abc</arg1>
+    </instruction>
+    <instruction opcode='LABEL' order='2'>
+        <arg1 type='label'>abc</arg1>
+    </instruction>
+    <instruction opcode='PUSHFRAME' order='3'>
+    </instruction>
+    <instruction opcode='WRITE' order='4'>
+        <arg1 type='string'>Hello</arg1>
+    </instruction>
+    <instruction opcode='POPFRAME' order='5'>
+    </instruction>
+    <instruction opcode='RETURN' order='6'>
+    </instruction>
+</program>

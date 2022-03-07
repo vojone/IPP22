@@ -39,6 +39,25 @@
             'DPRINT' => '&', 'BREAK' => ''
         );
 
+        /**
+         * @var Array Contains all opcodes from OPERATION_CODES of operations
+         * performing jumps (it is important for statistics)
+         */
+        public const JUMP_OP = array(
+            'JUMP', 'JUMPIFEQ', 'JUMPIFNEQ'
+        );
+
+        /**
+         * @var Array Contains all opcodes from OPERATION_CODES of operations
+         * that performs function calls or returns from functions
+         */
+        public const FUNC_OP = array(
+            'CALL', 'RETURN' 
+        );
+
+        /**
+         * @var Array Constant contaning all possible frame codes
+         */
         public const FRAME_CODES = array(
             'LF', 'GF', 'TF'
         );
@@ -52,6 +71,7 @@
 
         /**
          * Provides type to string conversion for printing XML
+         * @param type $type Type of token thaht should be converted
          */
         public static function typeToStr($type) {
             switch($type) {
@@ -73,6 +93,7 @@
         }
 
         /**
+<<<<<<< Updated upstream
          * Converts type to string to be understood by user
          */
         public static function UITypeToStr($type) {
@@ -96,6 +117,10 @@
 
         /**
          * Converts type specifier from table of op. codes to array of token types 
+=======
+         * Converts type specifier from table of op. codes to array of token types
+         * @param Char $char character to be converted
+>>>>>>> Stashed changes
          */
         public static function charToTypes($char) {
             switch($char) {
@@ -132,6 +157,9 @@
 
         /**
          * Check if given string is prolog or not
+         * @param Array $possibleTypes output parameter, array, that will be filled with all types that inpString represents
+         * @param String $inpString string that should be classified
+         * @param Array Array with token types that can input string represents
          */
         public static function isProlog(&$possibleTypes, $inpString) {
             $prolog = '/^'.Table::aToRegex(Table::PROLOG).'$/i';
@@ -148,14 +176,17 @@
 
         /**
          * Classifies type of token to string (got by e. g. scanner) 
+         * @param Array $possibleTypes output parameter, array, that will be filled with all types that inpString represents
+         * @param String $inpString string that should be classified
+         * @param Array Array with token types that can input string represents
          */
         public static function classifyToken(&$possibleTypes, $inpString) {
-            $varName = '[a-zA-Z_\-$&%*!?][a-zA-Z_\-$&%*!?0-9]*';
+            $varName = '[a-zA-Z_\-$&%\*!?][a-zA-Z_\-$&%\*!?0-9]*';
             $var = '/^'.Table::aToRegex(Table::FRAME_CODES).'@'.$varName.'$/';
 
             $type = '/^'.Table::aToRegex(Table::TYPE_CODES).'$/';
             $literal = '/^'.Table::aToRegex(Table::TYPE_CODES).'@.*$/';
-            $label = '/^[a-zA-Z_\-$&%*!?][a-zA-Z_\-$&%*!?0-9]*$/';
+            $label = '/^[a-zA-Z_\-$&%\*!?][a-zA-Z_\-$&%\*!?0-9]*$/';
 
             if(Table::searchInstr(Table::OPERATION_CODES, $inpString)) {
                 array_push($possibleTypes, type::OPCODE);
@@ -186,12 +217,22 @@
 
         /**
          * Assign type of token to string as literal (got by e. g. scanner) 
+         * @param Array $possibleTypes output parameter, array, that will be filled with all types that inpString represents
+         * @param Strin $inpString string that should be classified
+         * @param Array Array with token types that can input string represents
          */
         public static function classifyLiteral(&$possibleTypes, $inpString) {
             $stringContent = '([^\x{0000}-\x{0020}\s\\\]|(\\\[0-9]{3}))*';
             $string = '/^(string@('.$stringContent.')|nil)$/u';
 
+<<<<<<< Updated upstream
             $int = '/^int@((-?[0-9]+)|(nil))$/';
+=======
+            //Supports also _ in integer for better format of long numbers
+            //             sign?    decimal format   |  octal numbers           |              hexadecimal            | 0 | nil
+            $int = '/^int@[-\+]?(([1-9]((_)?[0-9]+)*)|(0[oO]?[0-7]((_)?[0-7]+)*)|(0[xX][0-9A-Fa-f]((_)?[0-9A-Fa-f]+)*)|(0)|(nil))$/';
+
+>>>>>>> Stashed changes
             $bool = '/^bool@(true|false|nil)$/';
             $nil = '/^nil@nil$/';
 
@@ -212,13 +253,19 @@
         }
 
         /**
-         * Function that can be used for searching in table with instructions
+         * Function that can be used for searching in table with instructions 
+         * (case insensitive in contrast to array_key_exist function)
          * @param Array $tab Haystack
          * @param String $str Needle
+         * @param Bool $keys If it is true searching is performed in keys in the array
+         * @return Bool True if there is occurence of $str in $tab
          */
-        public static function searchInstr($tab, $str) {
+        public static function searchInstr($tab, $str, $keys = true) {
             foreach($tab as $key => $element) {
-                if(strtoupper($str) === strtoupper($key)) {
+                if(strtoupper($str) === strtoupper($key) && $keys) {
+                    return true;
+                }
+                else if(strtoupper($str) === strtoupper($element) && !$keys) {
                     return true;
                 }
             }
@@ -229,6 +276,7 @@
         /**
          * Converts array with strings to regex representation
          * Example: array('string', 'bool', 'int') -> '(string|bool|int)'
+         * @param Array $arr array that whould be converted
          */
         public static function aToRegex($arr) {
             $regex = '(';
@@ -345,6 +393,10 @@
                 FSM::$nextState = state::INIT;
             }
             else if(preg_match('/[#]/', $currentChar)) {
+<<<<<<< Updated upstream
+=======
+                $scanner->statCollector->incStats('comments');
+>>>>>>> Stashed changes
                 FSM::$nextState = state::COMMENT;
             }
             else if(preg_match('/[.]/', $currentChar)) {

@@ -73,8 +73,67 @@
         }
     }
 
-    function generateMissing($path) {
-        $files = scandir($path);
+        public function preventEmptyFiles($out, $tmpXML, &$difference) {
+            //Preven premature EOF error in jexamtool
+            $outContent = trim(file_get_contents($out));
+            $gotContent = trim(file_get_contents($tmpXML));
+            if($outContent === "" || $gotContent === "") {
+
+                if($outContent === "" && $gotContent === "") {
+                    return true;
+                }
+                else {
+                    if($outContent === "") {
+                        $difference = "Expected empty file, but printed file is not empty!";
+                    }
+                    else {
+                        $difference = "Printed file is empty, but expected result is not!";
+                    }
+
+                    return false;
+                }
+            }
+
+            return null;
+        }
+
+        /**
+         * Compares return codes and output of DUT and expected output
+         * @return Bool True if test passed otherwise false
+         */
+        public function compare($test, $resultCode, &$difference) {
+            if($resultCode === false) {
+                return true;
+            }
+
+            if(!$this->compareRC($test, $resultCode, $difference)) { //Comparing return code
+                return false;
+            }
+
+            if($resultCode !== 0) {
+                return true;
+            }  
+
+            $out = $test['out'];
+            $returnCode = 0;
+            $diffFile = $test['folder'].$test['name'].'.'.Options::$diffFileSuffix;
+
+            if(Options::$parseOnly) { //Parse-only option is used
+
+                $tmpXML = $test['folder'].$test['name'].'.'.Options::$tempXMLFileSuffix;
+
+                $eFileResult = $this->preventEmptyFiles($out, $tmpXML, $difference);
+                if($eFileResult !== null) {
+                    return $eFileResult;
+                }
+
+                $jexamJarPath = addSlashToDir(Options::$jexamPath).Options::$jexamJar;
+                $jexamOptsPath = addSlashToDir(Options::$jexamPath).Options::$jexamOpts;
+
+                exec("java -jar \"{$jexamJarPath}\" \"{$out}\" \"{$tmpXML}\" \"{$diffFile}\" /D \"{$jexamOptsPath}\"", result_code : $returnCode);
+            }
+            else {
+                $tmp = $test['folder'].$test['name'].'.'.Options::$tempFileSuffix;
 
         $rcMissing = true;
         $inMissing = true;
