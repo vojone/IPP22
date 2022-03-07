@@ -3,8 +3,8 @@
      *                                  IPP project                           *  
      *                                  scanner.php                           *
      *                                                                        *
-     *                                 Vojtech Dvorak                         *
-     *                                 February 2022                          *
+     *                            Vojtech Dvorak (xdvora3o)                   *
+     *                                   March 2022                           *
      *************************************************************************/
 
     require_once 'tables.php';
@@ -77,11 +77,14 @@
         }
 
         /**
-         * Returns value of token without prefixes
+         * Returns value of token without prefixes if it is literal
          * @return String Value of token without prefixes such as frame or data type
          */
         public function getPurifiedVal() {
             $tokenValue = $this->getVal();
+            if($this->getType() === type::VARIABLE) {
+                return $tokenValue;
+            }
 
             $argValue = null;
             if(strpos($tokenValue, '@') !== false) {
@@ -100,7 +103,7 @@
      * Reads one token from input (it can be also EOF, newline or error token)
      * and determines its type
      * 
-     * Because it interacts with input, there can be only one scanner (implemented as singleton) to
+     * Because it interacts with input, there can be only one scanner (implemented as SINGLETON) to
      * make input consitent
      */
     class Scanner {
@@ -144,6 +147,11 @@
         private $expected;
 
         /**
+         * @var StatCollector Object that provides collecting of statistics
+         */
+        public $statCollector;
+
+        /**
          * Scanner constructor
          * @param Resource $input Input file where can be source code read
          */
@@ -157,6 +165,8 @@
             $this->expected = array();
             $this->strBuffer = null;
             $this->charBuffer = null;
+
+            $this->statCollector = StatCollector::instantiate();
         }
 
         /**
@@ -165,11 +175,10 @@
          */
         public static function instantiate($input) {
             if(Scanner::$inst === null) {
-                return new Scanner($input);
+                Scanner::$inst = new Scanner($input);
             }
-            else {
-                return Scanner::$inst;
-            }
+            
+            return Scanner::$inst;
         }
 
         /**
@@ -247,17 +256,10 @@
 
                 //Found corresponding transition function and process char with it
                 FSM::doTransition($this, $possibleTypes);
-
+                
                 //If type was not recognized, save current character to string buffer
                 if(empty($possibleTypes)) {
                     $this->strBuffer .= $this->curChar;
-                }
-
-                if(FSM::getState() !== state::DIRTY_TOKEN && 
-                   FSM::getNextState() !== state::DIRTY_TOKEN &&
-                   !in_array(state::DIRTY_TOKEN, $possibleTypes, true)) {
-
-                    $this->clearStrBuffer();
                 }
 
                 //Age next state (if it is given)
@@ -278,7 +280,9 @@
 
         //Clears buffer with currently processed string (token)
         public function clearStrBuffer() {
-            $this->cursorPosition['COL'] += strlen($this->strBuffer);
+            if($this->strBuffer !== null) {
+                $this->cursorPosition['COL'] += strlen($this->strBuffer);
+            }
 
             $this->strBuffer = null;
         }
@@ -339,6 +343,7 @@
          */
         private function createToken($possibleTypes, $value) {
             $type = null;
+
             if(in_array(type::ERROR, $possibleTypes)) {
                 $type = type::ERROR;
             }
@@ -359,8 +364,6 @@
                 if($type === null) {
                     $type = $possibleTypes[0];
                 }
-    
-                $this->expected = array_shift($this->expected);
             }
             else {
                 $type = $possibleTypes[0];
@@ -370,6 +373,8 @@
             $token->setType($type);
             $token->setVal($value);
 
+            $this->updateExp($token);
+
             return $token;
         }
 
@@ -377,7 +382,14 @@
          * Updates array with expected types
          * @param Token $token Currently returned token
          */
-        private function updateExp($type) {
+        private function updateExp($token) {
+            if(count($this->expected) > 0) {
+                array_shift($this->expected);
+            }
+
+            $value = strtoupper($token->getVal());
+            $type = $token->getType();
+
             if($type === type::OPCODE) {
                 $succesors = Table::OPERATION_CODES[$value];
                 

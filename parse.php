@@ -5,8 +5,8 @@
      *                                                                        *
      *                          Main body of IPPcode22 parser                 *
      *                                                                        *
-     *                                 Vojtech Dvorak                         *
-     *                                  February 2022                         *
+     *                            Vojtech Dvorak (xdvora3o)                   *
+     *                                   March 2022                           *
      *************************************************************************/
 
 
@@ -26,7 +26,7 @@
     }
 
     $ui = new UI($stdin, $stdout, $stderr);
-    $ui->parseArgs();
+    $ui->parseArgs($argv);
 
     //If help was called, help is printed and program is terminated (@see printHelp in ui.php) 
     if($ui->wasHelpCalled()) {
@@ -36,10 +36,6 @@
 
     $parser = new Parser($stdin, $stdout, $ui);
     $ret = $parser->parse();
-
-    if($ret = PARSE_SUCCESS) {
-        $ui->printStats();
-    }
 
     exit($ret);
 ?>

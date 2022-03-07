@@ -4,8 +4,8 @@
      *                                   tables.php                           *
      *  Contains statical classes defining lexical aspects of source language *
      *                                                                        *
-     *                                 Vojtech Dvorak                         *
-     *                                 February 2022                          *
+     *                            Vojtech Dvorak (xdvora3o)                   *
+     *                                   March 2022                           *
      *************************************************************************/
 
     /**
@@ -25,13 +25,13 @@
          * and associated strings, that specifies their arguments
          */
         public const OPERATION_CODES = array(
-            'MOVE' => 'v&', 'CREATEFRAME' => '', 'PU&HFRAME' => '',
+            'MOVE' => 'v&', 'CREATEFRAME' => '', 'PUSHFRAME' => '',
             'POPFRAME' => '', 'DEFVAR' => 'v', 'CALL' => 'l', 
             'RETURN' => '', 'PUSHS' => '&', 'POPS' => 'v', 
             'ADD' => 'v&&', 'SUB' => 'v&&', 'MUL' => 'v&&', 
             'IDIV' => 'v&&', 'LT' => 'v&&', 'GT' => 'v&&', 
             'EQ' => 'v&&', 'AND' => 'v&&', 'OR' => 'v&&', 
-            'NOT' => 'v&&', 'INT2CHAR' => 'v&', 'STRI2INT' => 'v&&', 
+            'NOT' => 'v&', 'INT2CHAR' => 'v&', 'STRI2INT' => 'v&&', 
             'READ' => 'vt', 'WRITE' => '&', 'CONCAT' => 'v&&', 
             'STRLEN' => 'v&', 'GETCHAR' => 'v&&', 'SETCHAR' => 'v&&', 
             'TYPE' => 'v&', 'LABEL' => 'l', 'JUMP' => 'l', 
@@ -93,6 +93,7 @@
         }
 
         /**
+<<<<<<< HEAD
 <<<<<<< Updated upstream
          * Converts type to string to be understood by user
          */
@@ -116,6 +117,8 @@
         }
 
         /**
+=======
+>>>>>>> tests
          * Converts type specifier from table of op. codes to array of token types 
 =======
          * Converts type specifier from table of op. codes to array of token types
@@ -139,21 +142,6 @@
             }
         }
 
-        /**
-         * Converts type specifier from table of opcodes to user friendly string
-         */
-        public static function UICharToStr($char) {
-            switch($char) {
-                case '&':
-                    return "variable or constant";
-                case 'v':
-                    return "variable";
-                case 'l':
-                    return "label";
-                case 't':
-                    return "type specifier";
-            }
-        }
 
         /**
          * Check if given string is prolog or not
@@ -225,6 +213,7 @@
             $stringContent = '([^\x{0000}-\x{0020}\s\\\]|(\\\[0-9]{3}))*';
             $string = '/^(string@('.$stringContent.')|nil)$/u';
 
+<<<<<<< HEAD
 <<<<<<< Updated upstream
             $int = '/^int@((-?[0-9]+)|(nil))$/';
 =======
@@ -233,6 +222,9 @@
             $int = '/^int@[-\+]?(([1-9]((_)?[0-9]+)*)|(0[oO]?[0-7]((_)?[0-7]+)*)|(0[xX][0-9A-Fa-f]((_)?[0-9A-Fa-f]+)*)|(0)|(nil))$/';
 
 >>>>>>> Stashed changes
+=======
+            $int = '/^int@((-?[0-9]+)|(\+?[0-9]+)|(nil))$/';
+>>>>>>> tests
             $bool = '/^bool@(true|false|nil)$/';
             $nil = '/^nil@nil$/';
 
@@ -282,7 +274,7 @@
             $regex = '(';
 
             foreach ($arr as $str) {
-                if($regex !== '') {
+                if($regex !== '(') {
                     $regex .= '|';
                 }
 
@@ -393,16 +385,22 @@
                 FSM::$nextState = state::INIT;
             }
             else if(preg_match('/[#]/', $currentChar)) {
+<<<<<<< HEAD
 <<<<<<< Updated upstream
 =======
                 $scanner->statCollector->incStats('comments');
 >>>>>>> Stashed changes
+=======
+                StatCollector::$inst->incStats('comments');
+>>>>>>> tests
                 FSM::$nextState = state::COMMENT;
             }
             else if(preg_match('/[.]/', $currentChar)) {
+                $scanner->clearStrBuffer();
                 FSM::$nextState = state::PROLOG;
             }
-            else if(preg_match('/[a-z_\-$&%*!?]/i', $currentChar)) {
+            else if(preg_match('/[a-z_\-+$&%*!?]/i', $currentChar)) {
+                $scanner->clearStrBuffer();
                 FSM::$nextState = state::DIRTY_TOKEN;
             }
             else if(preg_match('/[\r]/', $currentChar)) {
