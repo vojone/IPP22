@@ -166,7 +166,7 @@
             }
         }
 
-        /**
+/**
          * Check presence (and access rights) of all necessary files for perfoming tests
          */
         public function checkNecessaryFiles() {
@@ -191,6 +191,40 @@
                     $this->invalidFile(Options::$parseScript);
                 }
             }
+
+            if(!is_dir($dir) || !is_readable($dir) || !is_writeable($dir)) {
+                fwrite($this->stderr, "Error: Cannot acces given directory '{$dir}'".PHP_EOL);
+                exit(BAD_PATH_GIVEN);
+            }
+        }
+
+        /**
+         * Function that runs DUT above given test case 
+         * @param Array $test Asociative array containing paths to files that belongs to test case
+         * @return Integer Return code of executed script
+         */
+        public function test($test) {
+            $resultCode = 0;
+            $tmp = $test['folder'].$test['name'].'.'.Options::$tempFileSuffix;
+            $tmpXML = $test['folder'].$test['name'].'.'.Options::$tempXMLFileSuffix;
+
+            $output = null;
+            if(Options::$parseOnly) {
+                exec("php8.1 ".Options::$parseScript." <\"{$test['src']}\" >\"{$tmpXML}\"", result_code : $resultCode);
+            }
+            else if(Options::$intOnly) {
+                exec("python3.8 ".Options::$intScript." <\"{$test['src']}\" >\"{$tmp}\"", result_code : $resultCode);
+            }
+            else {
+                exec("php8.1 ".Options::$parseScript." <\"{$test['src']}\" >\"{$tmpXML}\"", result_code : $resultCode);
+
+                if($resultCode === 0) {
+                    exec("python3.8 ".Options::$intScript." <\"{$tmpXML}\" >\"{$tmp}\"", result_code : $resultCode);
+                }
+            }
+
+            return $resultCode;
+        }
 
         public function preventEmptyFiles($out, $tmpXML, &$difference) {
             //Preven premature EOF error in jexamtool
@@ -245,65 +279,7 @@
                 if($eFileResult !== null) {
                     return $eFileResult;
                 }
-
-                $jexamJarPath = addSlashToDir(Options::$jexamPath).Options::$jexamJar;
-                $jexamOptsPath = addSlashToDir(Options::$jexamPath).Options::$jexamOpts;
-
-                exec("java -jar \"{$jexamJarPath}\" \"{$out}\" \"{$tmpXML}\" \"{$diffFile}\" /D \"{$jexamOptsPath}\"", result_code : $returnCode);
-            }
-            else {
-                $tmp = $test['folder'].$test['name'].'.'.Options::$tempFileSuffix;
-
-        /**
-         * Function that runs DUT above given test case 
-         * @param Array $test Asociative array containing paths to files that belongs to test case
-         * @return Integer Return code of executed script
-         */
-        public function test($test) {
-            $resultCode = 0;
-            $tmp = $test['folder'].$test['name'].'.'.Options::$tempFileSuffix;
-            $tmpXML = $test['folder'].$test['name'].'.'.Options::$tempXMLFileSuffix;
-
-            $output = null;
-            if(Options::$parseOnly) {
-                exec("php8.1 ".Options::$parseScript." <\"{$test['src']}\" >\"{$tmpXML}\"", result_code : $resultCode);
-            }
-            else if(Options::$intOnly) {
-                exec("python3.8 ".Options::$intScript." <\"{$test['src']}\" >\"{$tmp}\"", result_code : $resultCode);
-            }
-            else {
-                exec("php8.1 ".Options::$parseScript." <\"{$test['src']}\" >\"{$tmpXML}\"", result_code : $resultCode);
-
-                if($resultCode === 0) {
-                    exec("python3.8 ".Options::$intScript." <\"{$tmpXML}\" >\"{$tmp}\"", result_code : $resultCode);
-                }
-            }
-
-            return $resultCode;
-        }
-
-        /**
-         * Compares return codes and output of DUT and expected output
-         * @return Bool True if test passed otherwise false
-         */
-        public function compare($test, $resultCode, &$difference) {
-            if($resultCode === false) {
-                return true;
-            }
-
-            if(!$this->compareRC($test, $resultCode, $difference)) { //Comparing return code
-                return false;
-            }
-
-            if($resultCode !== 0) {
-                return true;
-            }  
-
-            $out = $test['out'];
-            $returnCode = 0;
-            $diffFile = $test['folder'].$test['name'].'.'.Options::$diffFileSuffix;
-
-            if(Options::$parseOnly) { //Parse-only option is used
+                
                 $jexamJarPath = addSlashToDir(Options::$jexamPath).Options::$jexamJar;
                 $jexamOptsPath = addSlashToDir(Options::$jexamPath).Options::$jexamOpts;
 

@@ -93,8 +93,6 @@
         }
 
         /**
-<<<<<<< HEAD
-<<<<<<< Updated upstream
          * Converts type to string to be understood by user
          */
         public static function UITypeToStr($type) {
@@ -117,13 +115,8 @@
         }
 
         /**
-=======
->>>>>>> tests
          * Converts type specifier from table of op. codes to array of token types 
-=======
-         * Converts type specifier from table of op. codes to array of token types
          * @param Char $char character to be converted
->>>>>>> Stashed changes
          */
         public static function charToTypes($char) {
             switch($char) {
@@ -213,18 +206,10 @@
             $stringContent = '([^\x{0000}-\x{0020}\s\\\]|(\\\[0-9]{3}))*';
             $string = '/^(string@('.$stringContent.')|nil)$/u';
 
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-            $int = '/^int@((-?[0-9]+)|(nil))$/';
-=======
             //Supports also _ in integer for better format of long numbers
             //             sign?    decimal format   |  octal numbers           |              hexadecimal            | 0 | nil
             $int = '/^int@[-\+]?(([1-9]((_)?[0-9]+)*)|(0[oO]?[0-7]((_)?[0-7]+)*)|(0[xX][0-9A-Fa-f]((_)?[0-9A-Fa-f]+)*)|(0)|(nil))$/';
 
->>>>>>> Stashed changes
-=======
-            $int = '/^int@((-?[0-9]+)|(\+?[0-9]+)|(nil))$/';
->>>>>>> tests
             $bool = '/^bool@(true|false|nil)$/';
             $nil = '/^nil@nil$/';
 
@@ -385,14 +370,8 @@
                 FSM::$nextState = state::INIT;
             }
             else if(preg_match('/[#]/', $currentChar)) {
-<<<<<<< HEAD
-<<<<<<< Updated upstream
-=======
                 $scanner->statCollector->incStats('comments');
->>>>>>> Stashed changes
-=======
-                StatCollector::$inst->incStats('comments');
->>>>>>> tests
+
                 FSM::$nextState = state::COMMENT;
             }
             else if(preg_match('/[.]/', $currentChar)) {
