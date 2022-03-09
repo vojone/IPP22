@@ -188,9 +188,9 @@
             $this->statCollector->incStats('loc'); //Increase line of code counter
 
             $row = $this->scanner->getCursorPosition()['ROW'];
-            $opVal = $op->getVal();
-            if(Table::searchInstr(Table::JUMP_OP, $opVal, false) ||
-               Table::searchInstr(Table::FUNC_OP, $opVal, false)) {
+            $opVal = strtoupper($op->getVal());
+            if(Table::searchInstr(Table::JUMP_OP, $opVal, false) || 
+               $opVal === 'RETURN') {
                 $this->statCollector->incStats('jumps'); //Increase counters of jumps
             }
 
@@ -200,7 +200,7 @@
                 }
             }
             
-            if(strtoupper($opVal) === 'LABEL') {
+            if($opVal === 'LABEL') {
                 if(isset($args[0])) { //For sure
                     $this->statCollector->addLabel($args[0]->getVal(), $row);
                 }

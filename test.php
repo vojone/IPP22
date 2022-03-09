@@ -26,7 +26,7 @@
         public static $parseOnly = false;
         public static $intOnly = false;
 
-        public static $jexamPath = 'jexamxml/'; //TODO
+        public static $jexamPath = '/pub/courses/ipp/jexamxml/';
         public static $jexamJar = 'jexamxml.jar';
         public static $jexamOpts = 'options';
         public static $noclean = false;
@@ -166,7 +166,7 @@
             }
         }
 
-/**
+        /**
          * Check presence (and access rights) of all necessary files for perfoming tests
          */
         public function checkNecessaryFiles() {
@@ -338,7 +338,12 @@
          * Executes tests in given directory
          */
         public function run($dir, $recursive) {
-            $dir = addSlashToDir($dir);    
+            $dir = addSlashToDir($dir);   
+            
+            if(!is_readable($dir) || !is_writeable($dir)) {
+                $this->invalidFile($dir);
+            }
+
             $srcs = glob($dir.'*.src');
         
             if(count($srcs) > 0) { //There are tests in folder
@@ -416,7 +421,7 @@
                         $this->run($dir.$folderObject, true);
                     }
                     else {
-                        fwrite($this->stderr, 'Warning: --recursive: Found '.$dir.$folderObject.' but it is not writeable or readable!'.PHP_EOL);
+                        fwrite($this->stderr, 'Warning: --recursive: Found '.$dir.$folderObject.' but it is not writeable or readable! Skipping this folder...'.PHP_EOL);
                     }
                 }
             }
@@ -460,7 +465,7 @@
          * Prints error messages about invalid file and ends program with specific error code
          */
         public function invalidFile($path) {
-            fwrite($this->stderr, "Error: Cannot acces given file '{$path}'!".PHP_EOL);
+            fwrite($this->stderr, "Error: Cannot acces file or folder '{$path}'!".PHP_EOL);
             exit(BAD_PATH_GIVEN);
         }
     }

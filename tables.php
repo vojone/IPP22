@@ -44,15 +44,7 @@
          * performing jumps (it is important for statistics)
          */
         public const JUMP_OP = array(
-            'JUMP', 'JUMPIFEQ', 'JUMPIFNEQ'
-        );
-
-        /**
-         * @var Array Contains all opcodes from OPERATION_CODES of operations
-         * that performs function calls or returns from functions
-         */
-        public const FUNC_OP = array(
-            'CALL', 'RETURN' 
+            'JUMP', 'JUMPIFEQ', 'JUMPIFNEQ', 'CALL'
         );
 
         /**
