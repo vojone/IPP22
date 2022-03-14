@@ -65,6 +65,19 @@
         public function parseArgs($argv) {
             $args = getopt(UI::SHORT_OPTIONS, UI::LONG_OPTIONS);
 
+            foreach ($argv as $key => $arg) {
+                if($key === 0) {
+                    continue;
+                }
+
+                //Checking validity of used options (NOW ONLY FOR LONG OPTIONS WITHOUT OPTIONAL PARAM!)
+                $prefixLess = preg_replace('/^(--)/', '', $arg, limit : 1);
+                $paramLess = preg_replace('/(=[^"\']+)$/', ':', $prefixLess, limit : 1);
+                if(!in_array($paramLess, UI::LONG_OPTIONS)) {
+                    $this->usageError(INVALID_ARG_COMBINATION, "Chybný přepínač {$arg}!");
+                }
+            }
+
             if(isset($args['help'])) {
                 if(count($args) > 1) {
                     $this->usageError(INVALID_ARG_COMBINATION, "--help přepínač nemůže být kombinován s jiným přepínačem!");
@@ -93,7 +106,8 @@
                     continue;
                 }
 
-                if(preg_match('/^--stats=.*$/i', $arg)) {
+                $fileSpecifier = '/^--stats=.*$/';
+                if(preg_match($fileSpecifier, $arg) && isset($args['stats'])) {
                     $activeFilename = $args['stats'][$statsIndex];
                     
                     //There cannot be two groups of statistics in one file
@@ -112,7 +126,7 @@
                         $this->usageError(INVALID_ARG_COMBINATION, "chybí přepínač --stats=\"FILE\" před přepínačem {$arg}!");
                     }
                     else {
-                        $arg = substr_replace($arg, '', 0, 2);
+                        $arg = preg_replace('/^(--)/', '', $arg, limit : 1);
                         if(isset($args[$arg])) {
                             $stats[$activeFilename][$arg] = 0;
                         }
