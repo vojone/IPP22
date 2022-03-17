@@ -17,7 +17,56 @@ MISSING_VALUE = 56
 BAD_VALUE = 57
 INVALID_STRING_OP = 58
 
-def raiseError(errCode, msg):
-    print("\033[0;31mError: \033[0m" + msg, file=sys.stderr)
-    sys.exit(errCode)
+INTERNAL_ERROR = 99
+
+class Error:
+    class MException(Exception):
+        def __init__(self, code : int, msg : str = None):
+            self.code = code
+            self.msg = msg if msg != None else str(code) + "!"
+            self.prefix = "Error:"
+
+        def print(self):
+            print("\033[0;31m"+self.prefix+" \033[0m"+self.msg, file=sys.stderr)
+
+        def exit(self):
+            self.print()
+            sys.exit(self.code)
+
+    class ARGError(MException):
+        def __init__(self, code: int, msg: str = None):
+            super().__init__(code, msg)
+            self.prefix = "Argument error:"
+
+    class XMLError(MException):
+        def __init__(self, code: int, msg: str = None):
+            super().__init__(code, msg)
+            self.prefix = "Error in XML source:"
+
+    class SemanticError(MException):
+        def __init__(self, code: int, msg: str = None):
+            super().__init__(code, msg)
+            self.prefix = "Semantic error:"
+
+    class RuntimeError(MException):
+        def __init__(self, code: int, msg: str = None, iOrder : int = None):
+            super().__init__(code, msg)
+            self.prefix = "Runtime error:"
+            self.iOrderStr = "" if iOrder == None else str(iOrder)
+
+        def print(self):
+            print("\033[0;31m"+self.prefix+" \033[0m"+self.msg+" (at order: \033[1;33m"+self.iOrderStr+"\033[0m)", file=sys.stderr)
+    
+    class InternalError(MException):
+        def __init__(self, code: int, msg: str = None):
+            super().__init__(code, msg)
+            self.prefix = "Internal error:"
+
+        def print(self):
+            print("\033[1;31m"+self.prefix+" \033[0m"+self.msg, file=sys.stderr)
+
+    @staticmethod
+    def exit(errCode: int, msg: str):
+        print("\033[1;31mError: \033[0m"+msg, file=sys.stderr)
+        sys.exit(errCode)
 

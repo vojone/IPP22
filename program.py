@@ -1,35 +1,347 @@
-import sys
-
-from numpy import safe_eval
+from enum import Enum, auto
 from errors import *
 
+import sys
+
+
+
+class Data:
+    class Type(Enum):
+        NIL = auto()
+        BOOL = auto()
+        INT = auto()
+        STR = auto()
+
+
+    def __init__(self, type, value):
+        self.type = type
+        self.value = self.setValue(value)
+    
+    def isValCompatible(self, value):
+        if value.__class__.__name__ == "NoneType": # Every type can have 'None' (nil) value
+            return True
+
+        if self.type == __class__.Type.BOOL and value.__class__ == bool:
+            return True
+        elif self.type == __class__.Type.INT and value.__class__ == int:
+            return True
+        elif self.type == __class__.Type.STR and value.__class__ == str:
+            return True
+        else:
+            return False
+
+    def getType(self):
+        return self.type
+
+
+    def setType(self, newType):
+        self.type = newType
+
+
+    def getValue(self):
+        return self.value
+
+
+    def setValue(self, newValue):
+        if self.isValCompatible(newValue):
+            self.value = newValue
+        else:
+            raise Error.InternalError(INTERNAL_ERROR, "Unable to assign value of type "+newValue.__class__.__name__+" to data of type "+self.type.name+"!")
+
+    
+    def __deepcopy__(self):
+        newObj = self.__init__(self.type, self.value.deepcopy())
+        return newObj
+
+
+
+class Operand:
+    class Type(Enum):
+        VAR = auto()
+        LITERAL = auto()
+        LABEL = auto()
+        TYPE = auto()
+
+
+    def __init__(self, type : Type, content : str):
+        self.type = type
+        self.content = content
+
+
+    def getType(self):
+        return self.type
+
+
+    def getContent(self):
+        return self.content
+
+
+
+class Literal(Operand):
+    def __init__(self, content : str, dataType: Data.Type, value):
+        super().__init__(super().Type.LITERAL, content)
+        self.data = Data(dataType, value)
+
+
+    def getData(self):
+        return self.data
+
+
+
+class Variable(Operand):
+    class Frame(Enum):
+        GLOBAL = auto()
+        LOCAL = auto()
+        TEMPORARY = auto()
+
+
+    def __init__(self, content : str, frame : Frame, name : str):
+        super().__init__(super().Type.VAR, content)
+        self.frame = frame
+        self.name = name
+
+
+    def getFrame(self):
+        return self.frame
+    
+
+    def getName(self):
+        return self.name
+
+
+
+class Stack:
+    def __init__(self, errMsg = None, errCode = INTERNAL_ERROR):
+        self.elements = []
+        self.errMsg = errMsg
+        self.errCode = errCode
+
+    def pop(self, currentOrder = None):
+        if len(self.elements) == 0:
+            raise Error.RuntimeError(self.errCode, self.errMsg, currentOrder)
+
+        return self.elements.pop()
+
+    def push(self, element):
+        self.elements.append(element.deepcopy())
+
+
 class ProgramContext:
-    GF_MARK = "GF"
-    TF_MARK = "TF"
-    LF_MARK = "LF"
+    def __init__(self, input = sys.stdin):
+        self.nextInstructionIndex = None
+        self.nextInstructionOrder = None
+        self.input = input
 
-    def __init__(self):
-        self.frameStack = []
-        self.globalFrame = {}
-        self.localFrame = None
-        self.tempFrame = None
+        self.frames = {
+            Variable.Frame.GLOBAL : {},
+            Variable.Frame.LOCAL : None,
+            Variable.Frame.TEMPORARY : None,
+        }
 
-    def safeVarAdd(frame, varName):
-        if varName not in frame:
-            frame[varName] = {'type' : None, 'value' : None}
+        self.frameStack = Stack("Cannot pop empty frame stack", FRAME_NOT_EXISTS)
+        self.callStack = Stack("Cannot pop empty call stack", MISSING_VALUE)
+
+        self.labelMap = {}
+
+    
+    def setNextInstructionIndex(self, index :int):
+        self.nextInstructionIndex = index
+    
+
+    def getNextInstructionIndex(self) -> int:
+        return self.nextInstructionIndex
+
+
+    def setNextInstructionOrder(self, order : int):
+        self.nextInstructionOrder = order
+    
+
+    def getNextInstructionOrder(self) -> int:
+        return self.nextInstructionOrder
+
+
+    def clearLabelMap(self):
+        self.labelMap = {}
+
+
+    def getLabelMap(self) -> dict:
+        return self.labelMap
+
+
+    def addLabel(self, name : str, targetIndex : int):
+        if name in self.labelMap:
+            raise Error.SemanticError(SEMANTIC_ERROR, "Redefinition of label "+name+"!")
         else:
-            sys.exit(SEMANTIC_ERROR)
+            self.labelMap[name] = targetIndex
 
-    def addVar(self, varWithFrame):
-        frame, var = varWithFrame.split('@')
+
+    def getLabelIndex(self, name : str) -> int:
+        if name in self.labelMap:
+            raise Error.SemanticError(SEMANTIC_ERROR, "Undefined label "+name+"!")
+        else:
+            return self.labelMap[name]
+
+
+    def getFrame(self, frameName : str) -> dict:
+        if not frameName in self.frames or self.frames[frameName] == None:
+            raise Error.RuntimeError(FRAME_NOT_EXISTS, "Frame '"+frameName+"' does not exists!", self.getNextInstructionOrder)
+        else:
+            return self.frames[frameName]
+
+
+    def addVar(self, var : Variable):
+        name = var.getName()
+        frame = self.getFrame(var.getFrame())
+
+        if var in frame:
+            raise Error.RuntimeError(SEMANTIC_ERROR, "Redefinition of variable "+name+" in frame "+var.getFrame().name, self.getNextInstructionOrder)
+        else:
+            frame[name] = None
+
+
+    def getVar(self, var : Variable):
+        name = var.getName()
+        frame = self.getFrame(var.getFrame())
+        if not name in frame:
+            raise Error.RuntimeError(VAR_NOT_EXISTS, "Variable '"+name+"' does not exists in frame "+var.getFrame().name+"!", self.getNextInstructionOrder)
+        elif frame[name] == None:
+            raise Error.RuntimeError(MISSING_VALUE, "Missing value of '"+name+"in frame "+var.getFrame().name+"!", self.getNextInstructionOrder)
+        else:
+            return frame[name]
+
+
+    def setVar(self, varObj : Variable, newData : Data):
+        var = self.getVar(varObj)
+        var = newData.copy()
+
+    
+    def getData(self, operand : Operand) -> Data:
+        if operand.getType() == Operand.Type.LITERAL:
+            return operand.getData()
+        elif operand.getType() == Operand.Type.VAR:
+            return self.getVar(operand)
+        else:
+            raise Error.InternalError(INTERNAL_ERROR, "Unable to get data of operand of type "+operand.getType().name+"!")
+
+    
+    def newTempFrame(self):
+        self.frames[Variable.Frame.TEMPORARY] = {}
+
+
+    def clearTempFrame(self):
+        self.frames[Variable.Frame.TEMPORARY] = None
+
+
+    def updateLocalFrame(self):
+        self.frames[Variable.Frame.LOCAL] = self.frameStack[-1]    
+
+
+
+class Instruction:
+    def __init__(self, opcode : str, order : int, operands):
+        self.opcode = opcode
+        self.order = order
+        self.operands = operands
+    
+
+    def getOpCode(self):
+        return self.opcode
+
+
+    def getOrder(self):
+        return self.order
+
+
+    def getOperands(self):
+        return self.operands
+
+
+
+class Executable(Instruction):
+    def __init__(self, opcode: str, order: int, operands, action):
+        super().__init__(opcode, order, operands)
+        self.action = action
+
+
+    def do(self, ctx : ProgramContext):
+        ctx.setNextInstructionOrder(self.order)
+        self.action(ctx, self.operands)
+
+
+
+class Label(Instruction):
+    def do(self, ctx : ProgramContext):
+        pass
+
+
+class Program:
+    def __init__(self, input = sys.stdin, instructions = []):
+        self.ctx = ProgramContext(input)
+
+        self.instructions = []
+        for i in instructions:
+            self.addInstruction(i)
+
+
+    def mapLabels(self):
+        for index, i in enumerate(self.instructions):
+            if i.__class__ == Label:
+                self.ctx.addLabel(i.operands[0].getContent(), index)
+
+
+    def addInstruction(self, instruction : Instruction):
+        if len(self.instructions) == 0:
+            self.instructions.append(instruction)
+        else:
+            pos = len(self.instructions)
+            while instruction.getOrder() < self.instructions[pos-1].getOrder():
+                pos -= 1
+                if pos == 0:
+                    break
+
+            self.instructions.insert(pos, instruction)
+
+
+    def getInstructions(self):
+        return self.instructions
+
+
+    def start(self):
+        self.ctx.setNextInstructionIndex(0)
+
+
+    def finish(self):
+        self.ctx.setNextInstructionOrder(None)
+        self.ctx.setNextInstructionIndex(None)
+
+
+    def nextInstruction(self):
+        nextInstructionIndex = self.ctx.getNextInstructionIndex()
         
-        if frame == ProgramContext.GF_MARK:
-            ProgramContext.safeVarAdd(self.globalFrame, var)
-        elif frame == ProgramContext.TF_MARK:
-            ProgramContext.safeVarAdd(self.localFrame, var)
-        elif frame == ProgramContext.LF_MARK:
-            ProgramContext.safeVarAdd(self.localFrame, var)
+        if nextInstructionIndex == None:
+            pass
         else:
-            pass # Internal error
+            self.ctx.setNextInstructionIndex(1 + nextInstructionIndex)
 
 
+    def reset(self):
+        if self.instructions:
+            self.start()
+        else:
+            self.finish()
+
+
+    def hasEnded(self):
+        return self.ctx.nextInstructionIndex == None
+
+
+    def run(self):
+        self.reset()
+        while not self.hasEnded():
+            curInstruction = self.instructions[self.ctx.nextInstructionIndex]
+            curInstruction.do(self.ctx, curInstruction.args)
+
+            self.nextInstruction()
+
+            if self.ctx.nextInstructionIndex >= len(self.instructions):
+                self.finish()

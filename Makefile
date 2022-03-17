@@ -7,7 +7,10 @@ zip:
 	zip -r $(ZIPNAME) $(INZIP)
 
 ptest:
-	php8.1 test.php --parse-only --directory=$(PTESTS_PATH) --recursive >index.html 
+	php8.1 test.php --parse-only --directory=$(PTESTS_PATH) --recursive >index.html
+
+itest:
+	python3.8 interpret.py --interpret-only --directory=$(ITESTS_PATH) --recursive >index.html
 
 clean:
 	rm -f $(ZIPNAME)

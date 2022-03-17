@@ -1,38 +1,46 @@
 import getopt
 import sys
-import instructions
-from iparser import IParser
 
-from program import ProgramContext
 from os import F_OK, R_OK, access
+from iparser import IParser, SAnalayzer
 from errors import *
 
 
 def printHelp():
-    print("IPPcode22 interpret")
+    """Print help information to stdout"""
+
+    print("""IPPcode22 interpreter
+abc
+    """)
+
 
 
 class argumentParser:
+    """Parses arguments from command line and checks if they are valid"""
+
     SHORT_O = ""
     LONG_O = ["help", "source=", "input="]
 
 
     @staticmethod
     def checkFile(path):
-        return access(path, F_OK) and access(path, R_OK)
+        """Checks if file exists and if it is accessible for reading"""
+
+        if access(path, F_OK) and access(path, R_OK):
+            return
+        else:
+            Error.exit(INPUT_FILE_ERROR, "Unable to open file '"+path+"' for reading!")
 
 
     @staticmethod
     def parseArgs(argv):
-        '''Parses arguments from cmd line given in parameter'''
+        """Parses arguments from cmd line given in parameter"""
 
         iconfig = {}
-
         try:
-            opts, _ = getopt.getopt(argv[1:], argumentParser.SHORT_O, argumentParser.LONG_O)
+            opts, _ = getopt.getopt(argv[1:], __class__.SHORT_O, __class__.LONG_O)
         except getopt.GetoptError as error:
-            print(error)
-            sys.exit(ARGUMENT_ERROR)
+            Error.exit(ARGUMENT_ERROR, "Unknown option "+error.opt+" (see --help for allowed options)!")
 
         for opt, val in opts:
             if opt in ["--source"]:
@@ -42,42 +50,33 @@ class argumentParser:
             elif opt in ["--help"]:
                 iconfig["help"] = True
             else:
-                sys.exit(ARGUMENT_ERROR)
+                Error.exit(ARGUMENT_ERROR, "Invalid option "+opt+" !")
         
         return iconfig
 
 
     @staticmethod
-    def checkConfig(configDict):
-        '''Checks validity of config file returned from parseArgs function'''
+    def checkConfig(config : dict):
+        """Checks validity of config file returned from parseArgs function"""
 
-        if "help" in configDict:
+        if "help" in config:
             printHelp()
-            if len(configDict) > 1:
-                sys.exit(ARGUMENT_ERROR)
-            else:
-                sys.exit(EXIT_SUCCESS)
+            sys.exit(ARGUMENT_ERROR) if len(config) > 1 else sys.exit(EXIT_SUCCESS)
 
-        if "input" in configDict:
-            if not argumentParser.checkFile(configDict["input"]):
-                print("Cannot open input file for reading!")
-                sys.exit(INPUT_FILE_ERROR)
-            else:
-                configDict["inputOpened"] = open(configDict["input"])
+        if "input" in config:
+            __class__.checkFile(config["input"])
+            config["inputOpened"] = open(config["input"])
+        else:
+            config["inputOpened"] = sys.stdin
 
-        if "source" in configDict:
-            if not argumentParser.checkFile(configDict["source"]):
-                raiseError(INPUT_FILE_ERROR, "Cannot open source file for reading!")
-            else:
-                configDict["sourceOpened"] = open(configDict["source"]) 
+        if "source" in config:
+            __class__.checkFile(config["source"])
+            config["sourceOpened"] = open(config["source"])
+        else:
+            config["sourceOpened"] = sys.stdin
 
-        if "input" not in configDict and "source" not in configDict:
-            raiseError(ARGUMENT_ERROR, "Missing parameters! There must be at least one of the parameters --source='' or --input=''")
-
-        elif "input" not in configDict:
-            configDict["inputOpened"] = sys.stdin
-        elif "source" not in configDict:
-            configDict["sourceOpened"] = sys.stdin
+        if "input" not in config and "source" not in config:
+            Error.exit(ARGUMENT_ERROR, "Missing parameters! There must be at least one of the parameters --source=FILE or --input=FILE")
 
 
 
@@ -85,10 +84,12 @@ config = argumentParser.parseArgs(sys.argv)
 argumentParser.checkConfig(config)
 
 interpretParser = IParser(config)
-program = interpretParser.parse()
+semanticChecker = SAnalayzer()
 
-ctx = ProgramContext()
+try:
+    program = interpretParser.parse()
+    semanticChecker.checkSemantics(program)
+except Error.MException as e:
+    e.exit()
 
-instructions.instDict["DEFVAR"][instructions.FUNCTION_INDEX](ctx, "GF@a")
 
-print(ctx.globalFrame)
