@@ -213,7 +213,7 @@
                 exec("php8.1 ".Options::$parseScript." <\"{$test['src']}\" >\"{$tmpXML}\"", result_code : $resultCode);
             }
             else if(Options::$intOnly) {
-                exec("python3.8 ".Options::$intScript." <\"{$test['src']}\" >\"{$tmp}\"", result_code : $resultCode);
+                exec("python3.8 ".Options::$intScript." <\"{$test['src']}\" --input=\"{$test['in']}\" >\"{$tmp}\"", result_code : $resultCode);
             }
             else {
                 exec("php8.1 ".Options::$parseScript." <\"{$test['src']}\" >\"{$tmpXML}\"", result_code : $resultCode);
