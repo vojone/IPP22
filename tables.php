@@ -196,13 +196,13 @@
          */
         public static function classifyLiteral(&$possibleTypes, $inpString) {
             $stringContent = '([^\x{0000}-\x{0020}\s\\\]|(\\\[0-9]{3}))*';
-            $string = '/^(string@('.$stringContent.')|nil)$/u';
+            $string = '/^(string@('.$stringContent.'))$/u';
 
             //Supports also _ in integer for better format of long numbers
-            //             sign?    decimal format   |  octal numbers           |              hexadecimal            | 0 | nil
-            $int = '/^int@[-\+]?(([1-9]((_)?[0-9]+)*)|(0[oO]?[0-7]((_)?[0-7]+)*)|(0[xX][0-9A-Fa-f]((_)?[0-9A-Fa-f]+)*)|(0)|(nil))$/';
+            //             sign?    decimal format   |  octal numbers           |              hexadecimal            | 0 
+            $int = '/^int@[-\+]?(([1-9]((_)?[0-9]+)*)|(0[oO]?[0-7]((_)?[0-7]+)*)|(0[xX][0-9A-Fa-f]((_)?[0-9A-Fa-f]+)*)|(0))$/';
 
-            $bool = '/^bool@(true|false|nil)$/';
+            $bool = '/^bool@(true|false)$/';
             $nil = '/^nil@nil$/';
 
             if(preg_match($int, $inpString)) {
