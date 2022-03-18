@@ -51,7 +51,7 @@ class Error:
     class RuntimeError(MException):
         def __init__(self, code: int, msg: str = None, iOrder : int = None):
             super().__init__(code, msg)
-            self.prefix = "Runtime error:"
+            self.prefix = "Runtime error ("+str(code)+"):"
             self.iOrderStr = "" if iOrder == None else str(iOrder)
 
         def print(self):

@@ -1,18 +1,53 @@
-import codecs
 import re
-from typing import TYPE_CHECKING, Type
+from errors import *
 from program import Data, Literal, Operand, ProgramContext, Variable
 
 
 class Op:
-    def defVar(ctx : ProgramContext, args : list):
-        pass
-
     def move(ctx : ProgramContext, args : list):
-        pass
+        dst = args[0]
+        src = args[1]
+        ctx.setVar(dst, ctx.getData(src))
 
-    def jump(ctx : ProgramContext, args : list):
-        pass
+
+    def read(ctx : ProgramContext, args : list):
+        dst = args[0]
+        type = args[1].getTypeVal()
+
+        if type not in [Data.Type.INT, Data.Type.STR, Data.Type.BOOL]:
+            raise Error.RuntimeError(BAD_VALUE, "Type argument must be int|str|bool!", ctx.getNextInstructionOrder())
+
+        strInput = ctx.input.readline().strip()
+        strInput = strInput.lower() if type == Data.Type.BOOL else strInput # If it is bool type it does not matter letter case
+    
+        inputValue = None 
+        if Lang.isValidFormated(type, strInput):
+            inputValue = Lang.str2value(type, strInput) 
+        else:
+            type = Data.Type.NIL
+
+        ctx.setVar(dst, Data(type, inputValue))
+
+
+    def write(ctx : ProgramContext, args : list):
+        data = ctx.getData(args[0])
+        toPrint = data.getValue()
+
+        if data.getType() == Data.Type.BOOL: 
+            if toPrint == True:
+                toPrint = "true"
+            else:
+                toPrint = "false"
+        elif data.getType() == Data.Type.NIL:
+            toPrint = ""
+
+        print(toPrint, end='')
+
+
+    def defVar(ctx : ProgramContext, args : list):
+        newVar = args[0]
+        ctx.addVar(newVar)
+
 
     def nop(ctx : ProgramContext, args : list):
         pass
@@ -25,11 +60,11 @@ class Lang:
 
     INSTRUCTIONS = {
         # Frame operations, function calls 
-        "MOVE"              : [Op.nop , ["var", "symb"]],
+        "MOVE"              : [Op.move , ["var", "symb"]],
         "CREATEFRAME"       : [Op.nop , []],
         "PUSHFRAME"         : [Op.nop , []],
         "POPFRAME"          : [Op.nop , ["var", "symb"]],
-        "DEFVAR"            : [Op.nop , ["var"]],
+        "DEFVAR"            : [Op.defVar , ["var"]],
         "CALL"              : [Op.nop , ["label"]],
         "RETURN"            : [Op.nop , []],
         # Data stack operations
@@ -52,8 +87,8 @@ class Lang:
         "INT2CHAR"          : [Op.nop , ["var", "symb"]],
         "STRI2INT"          : [Op.nop , ["var", "symb", "symb"]],
         # IO
-        "READ"              : [Op.nop , ["var", "type"]],
-        "WRITE"             : [Op.nop , ["symb"]],
+        "READ"              : [Op.read , ["var", "type"]],
+        "WRITE"             : [Op.write , ["symb"]],
         # String operations
         "CONCAT"            : [Op.nop , ["var", "symb", "symb"]],
         "STRLEN"            : [Op.nop , ["var", "symb"]],
@@ -95,9 +130,9 @@ class Lang:
 
     OPERAND_FORMAT = {
         Data.Type.NIL : "^nil$",
-        Data.Type.STR : "^(([^\u0000-\u0020\s\\\]|(\\\[0-9]{3}))*)|nil$",
-        Data.Type.INT : "^[-\+]?(([1-9]((_)?[0-9]+)*)|(0[oO]?[0-7]((_)?[0-7]+)*)|(0[xX][0-9A-Fa-f]((_)?[0-9A-Fa-f]+)*)|(0)|(nil))$",
-        Data.Type.BOOL: "^(true|false|nil)$",
+        Data.Type.STR : "^(([^\u0000-\u0020\s\\\]|(\\\[0-9]{3}))*)$",
+        Data.Type.INT : "^[-\+]?(([1-9]((_)?[0-9]+)*)|(0[oO]?[0-7]((_)?[0-7]+)*)|(0[xX][0-9A-Fa-f]((_)?[0-9A-Fa-f]+)*)|(0))$",
+        Data.Type.BOOL: "^(true|false)$",
 
         Operand.Type.LABEL : "^[a-zA-Z_\-$&%\*!?][a-zA-Z_\-$&%\*!?0-9]*$",
         Operand.Type.TYPE  : "^(bool|int|string|nil)$",
@@ -114,8 +149,9 @@ class Lang:
         else:
             return False
 
+
     @staticmethod
-    def str2value(type : Data.Type, str : str):
+    def str2value(type : Data.Type, string : str):
         """Converts string to python data type"""
 
         def replaceEscSequence(match : re.Match):
@@ -125,23 +161,25 @@ class Lang:
             convertable = matchedStr[1:].lstrip('0') # Removal of initial backslash and leading zeros
             return chr(int(convertable)) # Returning unicode char corresponding to converted number sequence
 
-        if str == "nil" or type == Data.Type.NIL: # Everything can have nil value (and nil type can have only nil value)
+        if string == "nil" or type == Data.Type.NIL: # Everything can have nil value (and nil type can have only nil value)
             return None
 
         elif type == Data.Type.BOOL:
-            if str == "true":
+            if string == "true":
                 return True
-            elif str == "false":
+            elif string == "false":
                 return False
+            else:
+                return None
 
         elif type == Data.Type.STR:
-            result = re.sub(r"\\\d{3}", replaceEscSequence, str)
+            result = re.sub(r"\\\d{3}", replaceEscSequence, string)
             return result
 
         elif type == Data.Type.INT:
-            # Replacing leading zero for octal format mark (in the source language leading zero means octal)
-            withoutLeadingZeros = re.sub("^0", "0o", str)
-            return int(withoutLeadingZeros)
+            # Replacing leading zero for octal format mark (in the source language spec. leading zero means octal format)
+            withoutLeadingZeros = re.sub("^(0+)([1-9])", r"0o\2", string)
+            return int(withoutLeadingZeros, 0) 
 
 
     @staticmethod
@@ -152,6 +190,11 @@ class Lang:
     @staticmethod
     def isType(str : str) -> bool:
         return str in __class__.OPERAND_TYPES
+
+
+    @staticmethod
+    def str2frame(str : str) -> str:
+        return __class__.FRAMES[str]
 
 
     @staticmethod

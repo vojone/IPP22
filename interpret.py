@@ -88,8 +88,11 @@ semanticChecker = SAnalayzer()
 
 try:
     program = interpretParser.parse()
+    
     semanticChecker.checkSemantics(program)
+    program.run()
 except Error.MException as e:
     e.exit()
 
+# TODO : Clean up - close files and etc.
 

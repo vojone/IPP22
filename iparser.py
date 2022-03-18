@@ -3,7 +3,7 @@ import xml.parsers.expat as expat
 import re
 
 from errors import *
-from program import Data, Executable, Instruction, Label, Literal, Operand
+from program import Data, Executable, Instruction, Label, Literal, Operand, Type
 from program import Program, ProgramContext, Variable
 from lang import Lang
 
@@ -44,7 +44,7 @@ class SAnalayzer:
             nOperands = len(operands)
             nExpOp = len(expOperandSymbols)
             if nOperands != nExpOp:
-                raise Error.SemanticError(SEMANTIC_ERROR, "Instruction "+opcode+"(o. "+str(order)+") expects "+str(nOperands)+"operands, but found "+ str(nExpOp)+"!")
+                raise Error.SemanticError(SEMANTIC_ERROR, "Instruction "+opcode+" (o. "+str(order)+") expects "+str(nExpOp)+" operands, found "+ str(nOperands)+"!")
 
             for index, op in enumerate(operands):
                 if not Lang.isOperandCompatible(op, expOperandSymbols[index]):
@@ -105,6 +105,8 @@ class IParser:
         
         return children
 
+    # TODO check numbers of arg children
+
 
     @staticmethod
     def safeGetData(node : xml.Node, canBeEmpty = False) -> str:
@@ -147,7 +149,12 @@ class IParser:
 
         elif type == Operand.Type.VAR:
             frame, name = Lang.splitVarName(content)
-            return Variable(content, frame, name)
+            frameMark = Lang.str2frame(frame)
+            return Variable(content, frameMark, name)
+
+        elif type == Operand.Type.TYPE:
+            convType = Lang.getType(content)
+            return Type(content, convType)
 
         else:
             return Operand(type, content)
@@ -168,19 +175,20 @@ class IParser:
             content = __class__.safeGetData(op, canBeEmpty=True)
 
             if not Lang.isValidFormated(type, content):
-                raise Error.XMLError(BAD_XML, "Bad formatted operand '"+content+"' of instruction "+opcode+" (ord.: "+str(order)+")!")
+                raise Error.XMLError(BAD_XML, "Bad format of operand '"+content+"' of instruction "+opcode+" (ord.: "+str(order)+")!")
 
             operands.append(__class__.createOperand(content, type))
+
 
         return operands
 
 
     @staticmethod
-    def createInstruction(opcode : str, order : int, args):
+    def createInstruction(opcode : str, order : int, operands):
         if Lang.isLabelInstrucion(opcode):
-            return Label(opcode, order, args)
+            return Label(opcode, order, operands)
         else:
-            return Executable(opcode, order, args, Lang.getFunction(opcode))
+            return Executable(opcode, order, operands, Lang.getFunction(opcode))
 
 
     @staticmethod

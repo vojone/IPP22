@@ -15,7 +15,8 @@ class Data:
 
     def __init__(self, type, value):
         self.type = type
-        self.value = self.setValue(value)
+        self.setValue(value)
+
     
     def isValCompatible(self, value):
         if value.__class__.__name__ == "NoneType": # Every type can have 'None' (nil) value
@@ -29,6 +30,7 @@ class Data:
             return True
         else:
             return False
+
 
     def getType(self):
         return self.type
@@ -47,11 +49,6 @@ class Data:
             self.value = newValue
         else:
             raise Error.InternalError(INTERNAL_ERROR, "Unable to assign value of type "+newValue.__class__.__name__+" to data of type "+self.type.name+"!")
-
-    
-    def __deepcopy__(self):
-        newObj = self.__init__(self.type, self.value.deepcopy())
-        return newObj
 
 
 
@@ -88,6 +85,17 @@ class Literal(Operand):
 
 
 
+class Type(Operand):
+    def __init__(self, content: str, typeVal):
+        super().__init__(super().Type.TYPE, content)
+        self.typeVal = typeVal
+
+    
+    def getTypeVal(self):
+        return self.typeVal
+
+
+
 class Variable(Operand):
     class Frame(Enum):
         GLOBAL = auto()
@@ -111,19 +119,36 @@ class Variable(Operand):
 
 
 class Stack:
-    def __init__(self, errMsg = None, errCode = INTERNAL_ERROR):
+    def __init__(self):
         self.elements = []
-        self.errMsg = errMsg
+
+    
+    def setErr(self, emptyErrMsg = None, errCode = INTERNAL_ERROR):
+        self.errMsg = emptyErrMsg
         self.errCode = errCode
 
-    def pop(self, currentOrder = None):
-        if len(self.elements) == 0:
-            raise Error.RuntimeError(self.errCode, self.errMsg, currentOrder)
 
-        return self.elements.pop()
+    def pop(self, currentOrder = None, eTol = False):
+        if not self.elements and not eTol:
+            raise Error.RuntimeError(self.errCode, self.errMsg, currentOrder)
+        elif not self.elements and eTol:
+            return
+        else:
+            return self.elements.pop()
+
 
     def push(self, element):
-        self.elements.append(element.deepcopy())
+        self.elements.append(element)
+
+
+    def getTop(self, currentOrder = None, eTol = False):
+        if not self.elements and not eTol:
+            raise Error.RuntimeError(self.errCode, self.errMsg, currentOrder)
+        elif not self.elements and eTol:
+            return None
+        else:
+            return self.elements[-1]
+
 
 
 class ProgramContext:
@@ -138,8 +163,12 @@ class ProgramContext:
             Variable.Frame.TEMPORARY : None,
         }
 
-        self.frameStack = Stack("Cannot pop empty frame stack", FRAME_NOT_EXISTS)
-        self.callStack = Stack("Cannot pop empty call stack", MISSING_VALUE)
+        self.frameStack = Stack()
+        self.frameStack.setErr("Empty FRAME stack (unable to access top/pop it)", FRAME_NOT_EXISTS)
+        self.callStack = Stack()
+        self.callStack.setErr("Empty CALL stack! (unable to access top/pop it)", MISSING_VALUE)
+        self.dataStack = Stack()
+        self.dataStack.setErr("Empty DATA stack! (unable to access top/pop it)", MISSING_VALUE)
 
         self.labelMap = {}
 
@@ -182,11 +211,11 @@ class ProgramContext:
             return self.labelMap[name]
 
 
-    def getFrame(self, frameName : str) -> dict:
-        if not frameName in self.frames or self.frames[frameName] == None:
-            raise Error.RuntimeError(FRAME_NOT_EXISTS, "Frame '"+frameName+"' does not exists!", self.getNextInstructionOrder)
+    def getFrame(self, frameMark : Variable.Frame) -> dict:
+        if not frameMark in self.frames or self.frames[frameMark] == None:
+            raise Error.RuntimeError(FRAME_NOT_EXISTS, "Frame '"+frameMark.name+"' does not exists!", self.getNextInstructionOrder())
         else:
-            return self.frames[frameName]
+            return self.frames[frameMark]
 
 
     def addVar(self, var : Variable):
@@ -194,25 +223,31 @@ class ProgramContext:
         frame = self.getFrame(var.getFrame())
 
         if var in frame:
-            raise Error.RuntimeError(SEMANTIC_ERROR, "Redefinition of variable "+name+" in frame "+var.getFrame().name, self.getNextInstructionOrder)
+            raise Error.RuntimeError(SEMANTIC_ERROR, "Redefinition of variable "+name+" in frame "+var.getFrame().name, self.getNextInstructionOrder())
         else:
             frame[name] = None
 
 
-    def getVar(self, var : Variable):
+    def checkVar(self, var : Variable, canBeUnInit = False):
         name = var.getName()
         frame = self.getFrame(var.getFrame())
         if not name in frame:
-            raise Error.RuntimeError(VAR_NOT_EXISTS, "Variable '"+name+"' does not exists in frame "+var.getFrame().name+"!", self.getNextInstructionOrder)
-        elif frame[name] == None:
-            raise Error.RuntimeError(MISSING_VALUE, "Missing value of '"+name+"in frame "+var.getFrame().name+"!", self.getNextInstructionOrder)
+            raise Error.RuntimeError(VAR_NOT_EXISTS, "Variable '"+name+"' does not exists in frame "+var.getFrame().name+"!", self.getNextInstructionOrder())
+        elif frame[name] == None and not canBeUnInit:
+            raise Error.RuntimeError(MISSING_VALUE, "Missing value of '"+name+"' in frame "+var.getFrame().name+"!", self.getNextInstructionOrder())
         else:
-            return frame[name]
+            return frame, name
+
+
+    def getVar(self, var : Variable):
+        frame, name = self.checkVar(var)
+        return frame[name]
 
 
     def setVar(self, varObj : Variable, newData : Data):
-        var = self.getVar(varObj)
-        var = newData.copy()
+        frame, name = self.checkVar(varObj, canBeUnInit=True) # Check if variable exists in frame
+        frame[name] = newData # Assigning new data to it
+    
 
     
     def getData(self, operand : Operand) -> Data:
@@ -233,7 +268,7 @@ class ProgramContext:
 
 
     def updateLocalFrame(self):
-        self.frames[Variable.Frame.LOCAL] = self.frameStack[-1]    
+        self.frames[Variable.Frame.LOCAL] = self.frameStack.getTop(eTol=True)  
 
 
 
@@ -339,7 +374,7 @@ class Program:
         self.reset()
         while not self.hasEnded():
             curInstruction = self.instructions[self.ctx.nextInstructionIndex]
-            curInstruction.do(self.ctx, curInstruction.args)
+            curInstruction.do(self.ctx)
 
             self.nextInstruction()
 
