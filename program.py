@@ -270,7 +270,7 @@ class ProgramContext:
 
 
     def setVar(self, varObj : Variable, newData : Data):
-        frame, name = self.checkVar(varObj, canBeUnInit=True) # Check if variable exists in frame
+        frame, name = self.checkVar(varObj, canBeUninit=True) # Check if variable exists in frame
     
         frame[name] = newData # Assigning new data to it
 
@@ -415,7 +415,11 @@ class Program:
             curInstruction.do(self.ctx)
 
             self.ctx.incTotalICounter()
-            self.nextInstruction()
+
+            if self.hasEnded(): # Check if instruction terminates program
+                self.finish()
+            else:
+                self.nextInstruction()
 
             if self.ctx.nextInstructionIndex >= len(self.instructions):
                 self.finish()

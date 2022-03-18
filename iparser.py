@@ -46,7 +46,7 @@ class SAnalayzer:
             nOperands = len(operands)
             nExpOp = len(expOperandSymbols)
             if nOperands != nExpOp:
-                raise Error.SemanticError(SEMANTIC_ERROR, "Instruction "+opcode+" (o. "+str(order)+") expects "+str(nExpOp)+" operands, found "+ str(nOperands)+"!")
+                raise Error.SemanticError(BAD_XML, "Instruction "+opcode+" (o. "+str(order)+") expects "+str(nExpOp)+" operands, found "+ str(nOperands)+"!")
 
             for index, op in enumerate(operands):
                 if not Lang.isOperandCompatible(op, expOperandSymbols[index]):
@@ -56,7 +56,7 @@ class SAnalayzer:
 
         for jt in self.jumpTargets:
             if jt not in self.fakeCtx.getLabelMap():
-                raise Error.SemanticError(SEMANTIC_ERROR, "Jump to undefined label '"+jt+"'! (at order "+self.jumpTargets[jt]+")")
+                raise Error.SemanticError(SEMANTIC_ERROR, "Jump to undefined label '"+jt+"'! (at order "+str(self.jumpTargets[jt])+")")
             
 
 
@@ -163,7 +163,7 @@ class IParser:
     @staticmethod
     def getOperands(opcode : str, order : int, instruction : xml.Node):
         xmlOps = __class__.safeGetChildren(__class__.ARG_TAG_RE, instruction)
-
+        # TODO - it does not matter on order in XML it depends only on argX tag
         operands = []
         for index, op in enumerate(xmlOps):
             tagName = op.tagName

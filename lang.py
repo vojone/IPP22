@@ -21,7 +21,8 @@ class Op:
 
 
     def pushFrame(ctx : ProgramContext, args : list):
-        ctx.frameStack.push(ctx.frames[Variable.Frame.TEMPORARY])
+        TFToBePushed = ctx.getFrame(Variable.Frame.TEMPORARY)
+        ctx.frameStack.push(TFToBePushed)
         ctx.updateLocalFrame() # Stack with frames is changing -> need to update LF
         ctx.clearTempFrame() # Making TF undefined
 
@@ -404,7 +405,7 @@ class Lang:
         "MOVE"              : [Op.move, ["var", "symb"]],
         "CREATEFRAME"       : [Op.createFrame, []],
         "PUSHFRAME"         : [Op.pushFrame, []],
-        "POPFRAME"          : [Op.popFrame, ["var", "symb"]],
+        "POPFRAME"          : [Op.popFrame, []],
         "DEFVAR"            : [Op.defVar, ["var"]],
         "CALL"              : [Op.call, ["label"]],
         "RETURN"            : [Op.retFromCall, []],
