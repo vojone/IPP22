@@ -94,5 +94,11 @@ try:
 except Error.MException as e:
     e.exit()
 
+returnCode = program.getContext().getReturnCode()
+if returnCode == None:
+    sys.exit(EXIT_SUCCESS)
+else:
+    sys.exit(returnCode)
+
 # TODO : Clean up - close files and etc.
 

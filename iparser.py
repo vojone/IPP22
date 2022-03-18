@@ -11,30 +11,32 @@ from lang import Lang
 
 class SAnalayzer:
     def __init__(self):
+        self.reset()
+
+    def reset(self):
         self.jumpTargets = {}
-        self.ctx = ProgramContext()
+        self.fakeCtx = ProgramContext()
 
 
-    def resolveSAction(self, instructions : Instruction, operands : list):
-        opcode = instructions.getOpCode()
-        order = instructions.getOrder()
+    def resolveSAction(self, inst : Instruction, index : int, operands : list):
+        opcode = inst.getOpCode()
+        order = inst.getOrder()
         
         leadingOp = None
         if operands:
             leadingOp = operands[0]
 
         if Lang.isLabelInstrucion(opcode):
-            self.ctx.addLabel(leadingOp.getContent())
+            self.fakeCtx.addLabel(leadingOp.getContent(), index)
         elif Lang.isJumpInstruction(opcode):
             self.jumpTargets[leadingOp.getContent()] = order
-        elif Lang.isNewVarInstruction(opcode): # TODO - Statically it detects redefinition only for global vars
+        elif Lang.isNewVarInstruction(opcode): # TODO - Statically, it detects redefinition only for global vars
             if leadingOp.getFrame() == Variable.Frame.GLOBAL:
-                self.ctx.addVar(leadingOp.getFrame(), leadingOp.getName())
+                self.fakeCtx.addVar(leadingOp)
 
 
     def checkSemantics(self, program : Program):
-        self.jumpTargets = {}
-        fakeCtx = ProgramContext()
+        self.reset()
         for index, i in enumerate(program.getInstructions()):
             opcode = i.getOpCode()
             order = i.getOrder()
@@ -50,10 +52,10 @@ class SAnalayzer:
                 if not Lang.isOperandCompatible(op, expOperandSymbols[index]):
                     raise Error.SemanticError(SEMANTIC_ERROR, "Incomatible operand type of "+opcode+"(o. "+str(order)+")! Expected "+expOperandSymbols[index]+", got "+Lang.op2Str(op))
         
-        self.resolveSAction(i, operands)
+            self.resolveSAction(i, index, operands)
 
         for jt in self.jumpTargets:
-            if jt not in fakeCtx.getLabelMap():
+            if jt not in self.fakeCtx.getLabelMap():
                 raise Error.SemanticError(SEMANTIC_ERROR, "Jump to undefined label '"+jt+"'! (at order "+self.jumpTargets[jt]+")")
             
 
@@ -61,7 +63,7 @@ class SAnalayzer:
 class IParser:
     ROOT_TAG = "program"
     INSTR_TAG = "instruction"
-    ARG_TAG_RE = "arg(\d)+"
+    ARG_TAG_RE = "arg(\d+)"
 
     ORDER_ATTR = "order"
     OPCODE_ATTR = "opcode"
@@ -104,8 +106,6 @@ class IParser:
                 raise Error.XMLError(BAD_XML, "Unexpected XML element of type "+n.nodeName+"!")
         
         return children
-
-    # TODO check numbers of arg children
 
 
     @staticmethod
@@ -165,20 +165,21 @@ class IParser:
         xmlOps = __class__.safeGetChildren(__class__.ARG_TAG_RE, instruction)
 
         operands = []
-        for op in xmlOps:
-            xmlType = __class__.safeGetAttribute(__class__.TYPE_ATTR, op)
+        for index, op in enumerate(xmlOps):
+            tagName = op.tagName
+            if int(re.sub(__class__.ARG_TAG_RE, r"\1", tagName)) != index + 1:
+                raise Error.XMLError(BAD_XML, "Bad numbering of arguments of instruction "+opcode+" (ord.: "+str(order)+")!")
 
+            xmlType = __class__.safeGetAttribute(__class__.TYPE_ATTR, op)
             if not Lang.isType(xmlType):
                 raise Error.XMLError(BAD_XML, "Unknown argument type '"+xmlType+"' of instruction "+opcode+" (ord.: "+str(order)+")!")
 
             type = Lang.getType(xmlType)
             content = __class__.safeGetData(op, canBeEmpty=True)
-
             if not Lang.isValidFormated(type, content):
                 raise Error.XMLError(BAD_XML, "Bad format of operand '"+content+"' of instruction "+opcode+" (ord.: "+str(order)+")!")
 
             operands.append(__class__.createOperand(content, type))
-
 
         return operands
 

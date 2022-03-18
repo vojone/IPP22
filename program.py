@@ -155,7 +155,10 @@ class ProgramContext:
     def __init__(self, input = sys.stdin):
         self.nextInstructionIndex = None
         self.nextInstructionOrder = None
+        self.currentFunction = None
         self.input = input
+        self.returnCode = None
+        self.totalICounter = 0
 
         self.frames = {
             Variable.Frame.GLOBAL : {},
@@ -172,11 +175,20 @@ class ProgramContext:
 
         self.labelMap = {}
 
+
+    def getTotalICounter(self):
+        return self.totalICounter
+
+    def incTotalICounter(self):
+        self.totalICounter += 1
+
+    def resetTotalICounter(self):
+        self.totalICounter = 0
+
     
     def setNextInstructionIndex(self, index :int):
         self.nextInstructionIndex = index
     
-
     def getNextInstructionIndex(self) -> int:
         return self.nextInstructionIndex
 
@@ -184,9 +196,22 @@ class ProgramContext:
     def setNextInstructionOrder(self, order : int):
         self.nextInstructionOrder = order
     
-
     def getNextInstructionOrder(self) -> int:
         return self.nextInstructionOrder
+
+
+    def setCurrentFunction(self, fName):
+        self.setCurrentFunction = fName
+
+    def getCurrentFunction(self) -> str:
+        return self.currentFunction
+
+
+    def setReturnCode(self, value):
+        self.returnCode = value
+
+    def getReturnCode(self):
+        return self.returnCode
 
 
     def clearLabelMap(self):
@@ -205,7 +230,7 @@ class ProgramContext:
 
 
     def getLabelIndex(self, name : str) -> int:
-        if name in self.labelMap:
+        if not name in self.labelMap:
             raise Error.SemanticError(SEMANTIC_ERROR, "Undefined label "+name+"!")
         else:
             return self.labelMap[name]
@@ -228,26 +253,26 @@ class ProgramContext:
             frame[name] = None
 
 
-    def checkVar(self, var : Variable, canBeUnInit = False):
+    def checkVar(self, var : Variable, canBeUninit = False):
         name = var.getName()
         frame = self.getFrame(var.getFrame())
         if not name in frame:
             raise Error.RuntimeError(VAR_NOT_EXISTS, "Variable '"+name+"' does not exists in frame "+var.getFrame().name+"!", self.getNextInstructionOrder())
-        elif frame[name] == None and not canBeUnInit:
+        elif frame[name] == None and not canBeUninit:
             raise Error.RuntimeError(MISSING_VALUE, "Missing value of '"+name+"' in frame "+var.getFrame().name+"!", self.getNextInstructionOrder())
         else:
             return frame, name
 
 
-    def getVar(self, var : Variable):
-        frame, name = self.checkVar(var)
+    def getVar(self, var : Variable, canBeUninit = False):
+        frame, name = self.checkVar(var, canBeUninit)
         return frame[name]
 
 
     def setVar(self, varObj : Variable, newData : Data):
         frame, name = self.checkVar(varObj, canBeUnInit=True) # Check if variable exists in frame
-        frame[name] = newData # Assigning new data to it
     
+        frame[name] = newData # Assigning new data to it
 
     
     def getData(self, operand : Operand) -> Data:
@@ -318,7 +343,16 @@ class Program:
             self.addInstruction(i)
 
 
+    def getContext(self):
+        return self.ctx
+
+
     def mapLabels(self):
+        """
+        Performs mapping all labels to its indexes into context label map 
+        (used when jump instruction are executed)
+        """
+
         for index, i in enumerate(self.instructions):
             if i.__class__ == Label:
                 self.ctx.addLabel(i.operands[0].getContent(), index)
@@ -360,6 +394,9 @@ class Program:
 
 
     def reset(self):
+        self.ctx.setReturnCode(None)
+        self.ctx.resetTotalICounter()
+
         if self.instructions:
             self.start()
         else:
@@ -371,11 +408,13 @@ class Program:
 
 
     def run(self):
+        self.mapLabels()
         self.reset()
         while not self.hasEnded():
             curInstruction = self.instructions[self.ctx.nextInstructionIndex]
             curInstruction.do(self.ctx)
 
+            self.ctx.incTotalICounter()
             self.nextInstruction()
 
             if self.ctx.nextInstructionIndex >= len(self.instructions):
