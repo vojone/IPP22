@@ -1,7 +1,7 @@
 # IPP project 2. part
 # Author: Vojtech Dvorak (xdvora3o)
 
-"""Contains classes reponsible for parsing of input XML and for statical
+"""Contains classes reponsible for parsing of input XML and for static
 semantic analysis
 """
 
@@ -16,7 +16,7 @@ from lang import Lang
 
 
 class SAnalayzer:
-    """Performs statical semantic analysis of correctly parsed XML input"""
+    """Performs static semantic analysis of correctly parsed XML input"""
 
     def __init__(self):
         self.reset()
@@ -55,7 +55,7 @@ class SAnalayzer:
 
 
     def checkSemantics(self, program : Program):
-        """Performas statical semantic analysis. It can found basic semantic
+        """Performas static semantic analysis. It can found basic semantic
         errors without executing program such as redefinition of variable
         in global frame, jump to non-existing label...
         

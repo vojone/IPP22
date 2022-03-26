@@ -20,6 +20,7 @@ class Data:
         BOOL = auto()
         INT = auto()
         STR = auto()
+        FLOAT = auto()
 
 
     def __init__(self, type, value):
@@ -68,7 +69,6 @@ class Data:
             self.value = newValue
         else:
             raise Error.InternalError(INTERNAL_ERROR, "Unable to assign value of type "+newValue.__class__.__name__+" to data of type "+self.type.name+"!")
-
 
 
 class Operand:
@@ -163,6 +163,7 @@ class Stack:
     def __init__(self):
         self.elements = []
 
+
     def __str__(self):
         string = ""
 
@@ -176,6 +177,14 @@ class Stack:
             string = "Empty"
 
         return string
+
+    
+    def clear(self):
+        """Deletes all elements from stack and brings the stack to 
+        the initial state
+        """
+
+        self.elements = []
 
 
     def getElements(self):
@@ -223,6 +232,7 @@ class Stack:
             return None
         else:
             return self.elements[-1]
+
 
 
 class Frame:

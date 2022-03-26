@@ -2,12 +2,290 @@
 # Author: Vojtech Dvorak (xdvora3o)
 
 """Contains class with implementation of instructions (Op) and class with
-description of input lanugaugage (Lang)
+description of input lanuguage (Lang). 
+
+Also contains additional class Utils with static methods, that make original 
+implementation of instructions more simple (by making multipurpose functions 
+for similar operation with same checks)
 """
 
 import re
 from errors import *
 from program import Data, Literal, Operand, ProgramContext, Variable
+
+
+class Utils:
+    """Contains static methods for simplfying implementations of instructions"""
+
+    @staticmethod
+    def arithmetics(ctx : ProgramContext, lOp : Data, rOp : Data, func : str = 'ADD') -> Data:
+        """Performs specified arithmetical operation and resturns Data
+        object with result or it raises exception
+
+        Args:
+            ctx (ProgramContext): current program context (for printing errors)
+            lOp (Data): data of the left operand
+            rOp (Data): data of the righ operand
+            func (str): function specifier it can be ADD|SUB|MULT|DIV|IDIV
+        """
+
+        t = Data.Type
+        compTypes = [t.INT, t.FLOAT]
+        if lOp.getType() not in compTypes or rOp.getType() not in compTypes:
+            raise Error.RuntimeError(BAD_TYPES, "Arithmetic instruction can operate only with INTEGERS or FLOATS!", ctx)
+
+        result = None
+        if func == 'SUB':
+            result = lOp.getValue() - rOp.getValue()
+
+        elif func == 'MULT':
+            result = lOp.getValue() * rOp.getValue()
+
+        elif func == 'DIV':
+            if rOp.getValue() == 0.0:
+                raise Error.RuntimeError(BAD_VALUE, "Division by ZERO!", ctx)
+            elif rOp.getType() != t.FLOAT or lOp.getType() != t.FLOAT:
+                raise Error.RuntimeError(BAD_TYPES, "DIV can operate only with FLOAT operands (both)!", ctx)
+            result = lOp.getValue() / rOp.getValue()
+
+        elif func == 'IDIV':
+            if rOp.getValue() == 0:
+                raise Error.RuntimeError(BAD_VALUE, "Integer division by ZERO!", ctx)
+            elif rOp.getType() != t.INT or lOp.getType() != t.INT:
+                raise Error.RuntimeError(BAD_TYPES, "IDIV can operate only with INT operands (both)!", ctx)
+
+            result = lOp.getValue() // rOp.getValue()
+
+        else:
+            result = lOp.getValue() + rOp.getValue()
+
+        resultType = t.INT
+        if lOp.getType() == t.FLOAT or rOp.getType() == t.FLOAT:
+            resultType = t.FLOAT
+
+        return Data(resultType, result)
+
+
+    @staticmethod
+    def arithmetics3(ctx : ProgramContext, args : list, f : str = 'ADD'):
+        """Wrapper of arithmetics for three adress instructions"""
+
+        dst = args[0]
+        lOp = ctx.getData(args[1])
+        rOp = ctx.getData(args[2])
+
+        result = __class__.arithmetics(ctx, lOp, rOp, f)
+
+        ctx.setVar(dst, result)
+
+
+    @staticmethod
+    def stackArithmetics(ctx : ProgramContext, f : str = 'ADD'):
+        """Wrapper of arithmetics for stack instructions"""
+
+        rOp = ctx.dataStack.pop()
+        lOp = ctx.dataStack.pop()
+
+        result = __class__.arithmetics(ctx, lOp, rOp, f)
+
+        ctx.dataStack.push(result)
+
+
+    @staticmethod
+    def float2int(ctx : ProgramContext, toBeConverted : Data) -> Data:
+        """Converts float data to int and returns data object with the result"""
+
+        if toBeConverted.getType() != Data.Type.FLOAT:
+            raise Error.RuntimeError(BAD_TYPES, "Expected FLOAT value as a second operand!", ctx)
+
+        return Data(Data.Type.INT, int(toBeConverted.getValue()))
+
+
+    @staticmethod
+    def int2float(ctx : ProgramContext, toBeConverted : Data) -> Data:
+        """Converts int data to float and returns data object with the result"""
+
+        if toBeConverted.getType() != Data.Type.INT:
+            raise Error.RuntimeError(BAD_TYPES, "Expected INT value as a second operand!", ctx)
+
+        return Data(Data.Type.FLOAT, float(toBeConverted.getValue()))
+
+
+    @staticmethod
+    def comparing(ctx : ProgramContext, lOp : Data, rOp : Data, func : str = 'EQ') -> Data:
+        """Performs specified comparison and resturns Data (of type BOOL)
+        object with the result or it raises exception
+
+        Args:
+            ctx (ProgramContext): current program context (for printing errors)
+            lOp (Data): data of the left operand
+            rOp (Data): data of the righ operand
+            func (str): function specifier it can be EQ|GT|LT
+        """
+
+        if lOp.getType() != rOp.getType():
+            raise Error.RuntimeError(BAD_TYPES, "Compared values must have same type (or with equality, there can be NIL type)!", ctx)
+
+        result = None
+        if func == 'EQ':
+            result = lOp.getValue() == rOp.getValue()
+        else:
+            if lOp.getType() == Data.Type.NIL or rOp.getType() == Data.Type.NIL:
+                raise Error.RuntimeError(BAD_TYPES, "NIL can be compared only with equality!", ctx)
+            
+            if func == 'LT':
+                result = lOp.getValue() < rOp.getValue()
+            else:
+                result = lOp.getValue() > rOp.getValue()
+
+        return Data(Data.Type.BOOL, result)
+
+
+    @staticmethod
+    def comparing3(ctx : ProgramContext, args : list, f : str = 'EQ'):
+        """Wrapper of comparing for three adress instructions"""
+
+        dst = args[0]
+        lOp = ctx.getData(args[1])
+        rOp = ctx.getData(args[2])
+
+        result = __class__.comparing(ctx, lOp, rOp, f)
+
+        ctx.setVar(dst, result)
+
+
+    @staticmethod
+    def stackComparing(ctx : ProgramContext, f : str = 'EQ'):
+        """Wrapper of comparing for stack instructions"""
+
+        rOp = ctx.dataStack.pop()
+        lOp = ctx.dataStack.pop()
+
+        result = __class__.comparing(ctx, lOp, rOp, f)
+
+        ctx.dataStack.push(result)
+
+
+    @staticmethod
+    def logic(ctx : ProgramContext, lOp : Data, rOp : Data = None, func : str = 'NOT'):
+        """Performs specified logical and resturns Data (of type BOOL)
+        object with the result or it raises exception
+
+        Args:
+            ctx (ProgramContext): current program context (for printing errors)
+            lOp (Data): data of the left operand
+            rOp (Data): data of the righ operand
+            func (str): function specifier it can be EQ|GT|LT
+        """
+        
+        if lOp.getType() != Data.Type.BOOL:
+            raise Error.RuntimeError(BAD_TYPES, "Logical functions can operate only with BOOL values!", ctx)
+
+        result = None
+        if func in ['AND', 'OR']:
+            if rOp.getType() != Data.Type.BOOL:
+                raise Error.RuntimeError(BAD_TYPES, "Both operands of logical functions must have BOOL values!", ctx)
+            
+            if func == 'AND':
+                result = lOp.getValue() and rOp.getValue()
+            else:
+                result = lOp.getValue() or rOp.getValue()
+        else:
+            result = not lOp.getValue()
+
+        return Data(Data.Type.BOOL, result)
+
+    
+    @staticmethod
+    def logic3(ctx : ProgramContext, args : list, f : str = 'NOT'):
+        """Wrapper of logic for three adress instructions"""
+
+        dst = args[0]
+        lOp = ctx.getData(args[1])
+        rOp = None
+
+        if f in ['AND', 'OR']:
+            rOp = ctx.getData(args[2])
+
+        result = __class__.logic(ctx, lOp, rOp, f)
+
+        ctx.setVar(dst, result)
+
+
+    @staticmethod
+    def stackLogic(ctx : ProgramContext, f : str = 'NOT'):
+        """Wrapper of logic for stack instructions"""
+
+        rOp = None
+        if f in ['AND', 'OR']:
+            rOp = ctx.dataStack.pop()
+
+        lOp = ctx.dataStack.pop()
+
+        result = __class__.logic(ctx, lOp, rOp, f)
+
+        ctx.dataStack.push(result)
+
+
+    def int2char(ctx : ProgramContext, ordinal : Data):
+        """Converts int to character and returns data object (STR) with 
+        the result (or it raises exception)
+        """
+
+        if ordinal.getType() != Data.Type.INT:
+            raise Error.RuntimeError(BAD_TYPES, "Bad data types of operands of instruction INT2CHAR (expected INTEGER)!", ctx)
+
+        try:
+            char = chr(ordinal)
+        except ValueError:
+            raise Error.RuntimeError(INVALID_STRING_OP, "Invalid unicode ordinal value! Cannot be converted!", ctx)
+
+        return Data(Data.Type.STR, char)
+
+
+    def getCharAtIndex(ctx : ProgramContext, string : Data, index : Data) -> str:
+        """Gets character of string at given index and returns data object 
+        with the result (with type STR) (or it raises exception)
+        """
+
+        t = Data.Type
+        if string.getType() != t.STR or index.getType() != t.INT:
+            raise Error.RuntimeError(BAD_TYPES, "Bad data types of operands of instruction STRI2INIT!", ctx)
+
+        indexInt = index.getValue()
+        stringLen = len(string.getValue())
+
+        # It is possible to index string from back (by negative numbers)
+        if indexInt >= stringLen or indexInt < -stringLen:
+            raise Error.RuntimeError(INVALID_STRING_OP, "Index outside string!", ctx)
+
+        return string.getValue()[indexInt]
+
+
+    def conditionEval(ctx : ProgramContext, lOp : Data, rOp : Data, f : str = 'EQ') -> bool:
+        """Evaluates condition (== or !=) of jump and returns boolean value
+        wwith the result
+
+        Args:
+            lOp (Data): left operand of comparison
+            rOp (Data): right opearnd of comparison
+            f (str): specifies comparison mode (EQ|NEQ)
+
+        Returns:
+            (bool) True if jump should be performed (condition is satisfied)
+        """
+
+        lOpType = lOp.getType()
+        rOpType = rOp.getType()
+        t = Data.Type
+        if lOpType != rOpType or (lOpType == t.NIL and rOpType == t.NIL):
+            raise Error.RuntimeError(BAD_TYPES, "Incompatible types of conditional jump (expected same types or one NIL type)", ctx)
+
+        if f == 'NEQ':
+            return lOp.getValue() != rOp.getValue()
+        else:
+            return lOp.getValue() == rOp.getValue()
+
 
 
 class Op:
@@ -73,154 +351,85 @@ class Op:
         ctx.setVar(dstVar, poppedData)
 
 
-    def integerArithmetics3(ctx : ProgramContext, args : list, f : str = 'ADD'):
-        dst = args[0]
-        lOp = ctx.getData(args[1])
-        rOp = ctx.getData(args[2])
-
-        if lOp.getType() != Data.Type.INT or rOp.getType() != Data.Type.INT:
-            raise Error.RuntimeError(BAD_TYPES, "Integer arithmetic instruction can operate only with INTEGERS!", ctx)
-
-        result = None
-        if f == 'SUB':
-            result = lOp.getValue() - rOp.getValue()
-        elif f == 'MULT':
-            result = lOp.getValue() * rOp.getValue()
-        elif f == 'IDIV':
-            if rOp.getValue() == 0:
-                raise Error.RuntimeError(BAD_VALUE, "Division by ZERO!", ctx)
-            result = lOp.getValue() // rOp.getValue()
-        else:
-            result = lOp.getValue() + rOp.getValue()
-
-        ctx.setVar(dst, Data(Data.Type.INT, result))
-
-
     def add(ctx : ProgramContext, args : list):
-        __class__.integerArithmetics3(ctx, args, 'ADD')
+        Utils.arithmetics3(ctx, args, 'ADD')
 
 
     def sub(ctx : ProgramContext, args : list):
-        __class__.integerArithmetics3(ctx, args, 'SUB')
+        Utils.arithmetics3(ctx, args, 'SUB')
 
 
     def mul(ctx : ProgramContext, args : list):
-        __class__.integerArithmetics3(ctx, args, 'MULT')
+        Utils.arithmetics3(ctx, args, 'MULT')
+
+
+    def div(ctx : ProgramContext, args : list):
+        Utils.arithmetics3(ctx, args, 'DIV')
 
 
     def idiv(ctx : ProgramContext, args : list):
-        __class__.integerArithmetics3(ctx, args, 'IDIV')
+        Utils.arithmetics3(ctx, args, 'IDIV')
 
-
-    def comparing3(ctx : ProgramContext, args : list, f : str = 'EQ'):
+    
+    def float2int(ctx : ProgramContext, args : list):
         dst = args[0]
-        lOp = ctx.getData(args[1])
-        rOp = ctx.getData(args[2])
+        toBeConverted = ctx.getData(args[1])
 
-        if lOp.getType() != rOp.getType():
-            raise Error.RuntimeError(BAD_TYPES, "Compared values must have same type (or with equality, there can be NIL type)!", ctx)
+        result = Utils.float2int(ctx, toBeConverted)
 
-        result = None
-        if f == 'EQ':
-            result = lOp.getValue() == rOp.getValue()
-        else:
-            if lOp.getType() == Data.Type.NIL or rOp.getType() == Data.Type.NIL:
-                raise Error.RuntimeError(BAD_TYPES, "NIL can be compared only with equality!", ctx)
-            
-            if f == 'LT':
-                result = lOp.getValue() < rOp.getValue()
-            else:
-                result = lOp.getValue() > rOp.getValue()
+        ctx.setVar(dst, result)
 
-        ctx.setVar(dst, Data(Data.Type.BOOL, result))
+
+    def int2float(ctx : ProgramContext, args : list):
+        dst = args[0]
+        toBeConverted = args[1]
+
+        result = Utils.int2float(ctx, toBeConverted)
+
+        ctx.setVar(dst, result)
 
     
     def lt(ctx : ProgramContext, args : list):
-        __class__.comparing3(ctx, args, 'LT')
+        Utils.comparing3(ctx, args, 'LT')
 
 
     def gt(ctx : ProgramContext, args : list):
-        __class__.comparing3(ctx, args, 'GT')
+        Utils.comparing3(ctx, args, 'GT')
 
 
     def eq(ctx : ProgramContext, args : list):
-        __class__.comparing3(ctx, args, 'EQ')
-
-
-    def logic3(ctx : ProgramContext, args : list, f : str = 'NOT'):
-        dst = args[0]
-        lOp = ctx.getData(args[1])
-
-        if lOp.getType() != Data.Type.BOOL:
-            raise Error.RuntimeError(BAD_TYPES, "Logical functions can operate only with BOOL values!", ctx)
-
-        result = None
-        if f in ['AND', 'OR']:
-            rOp = ctx.getData(args[2])
-
-            if rOp.getType() != Data.Type.BOOL:
-                raise Error.RuntimeError(BAD_TYPES, "Both operands of logical functions must have BOOL values!", ctx)
-            
-            if f == 'AND':
-                result = lOp.getValue() and rOp.getValue()
-            else:
-                result = lOp.getValue() or rOp.getValue()
-        else:
-            result = not lOp.getValue()
-
-        ctx.setVar(dst, Data(Data.Type.BOOL, result))
+        Utils.comparing3(ctx, args, 'EQ')
 
 
     def andF(ctx : ProgramContext, args : list):
-        __class__.logic3(ctx, args, 'AND')
+        Utils.logic3(ctx, args, 'AND')
 
 
     def orF(ctx : ProgramContext, args : list):
-        __class__.logic3(ctx, args, 'OR')
+        Utils.logic3(ctx, args, 'OR')
 
 
     def notF(ctx : ProgramContext, args : list):
-        __class__.logic3(ctx, args, 'NOT')
+        Utils.logic3(ctx, args, 'NOT')
 
 
     def int2char(ctx : ProgramContext, args : list):
         dst = args[0]
-        ordinal = ctx.getData(args[1])
+        ordinalValue = args[1]
 
-        if ordinal.getType() != Data.Type.INT:
-            raise Error.RuntimeError(BAD_TYPES, "Bad data types of operands of instruction INT2CHAR (expected INTEGER)!", ctx)
+        result = Utils.int2char(ctx, ordinalValue)
 
-        try:
-            char = chr(ordinal)
-        except ValueError:
-            raise Error.RuntimeError(INVALID_STRING_OP, "Invalid unicode ordinal value! Cannot be converted!", ctx)
-
-        ctx.setVar(dst, Data(Data.Type.STR, char))
-
-
-    def getCharAtIndex(ctx : ProgramContext, args : list) -> str:
-        string = ctx.getData(args[1])
-        index = ctx.getData(args[2])
-
-        t = Data.Type
-        if string.getType() != t.STR or index.getType() != t.INT:
-            raise Error.RuntimeError(BAD_TYPES, "Bad data types of operands of instruction STRI2INIT!", ctx)
-
-        indexInt = index.getValue()
-        stringLen = len(string.getValue())
-
-        # It is possible to index string from back (by negative numbers)
-        if indexInt >= stringLen or indexInt < -stringLen:
-            raise Error.RuntimeError(INVALID_STRING_OP, "Index outside string!", ctx)
-
-        return string.getValue()[indexInt]
+        ctx.setVar(dst, result)
 
 
     def stri2int(ctx : ProgramContext, args : list):
         dst = args[0]
+        string = ctx.getData(args[1])
+        index = ctx.getData(args[2])
 
         # String is in unicode so it should be valid character for ord
-        result = ord(__class__.getCharAtIndex(ctx, args))
+        result = ord(Utils.getCharAtIndex(ctx, string, index))
+
         ctx.setVar(dst, Data(Data.Type.INT, result))
 
 
@@ -228,8 +437,9 @@ class Op:
         dst = args[0]
         type = args[1].getTypeVal()
 
-        if type not in [Data.Type.INT, Data.Type.STR, Data.Type.BOOL]:
-            raise Error.RuntimeError(BAD_VALUE, "Type argument must be int|str|bool!", ctx)
+        t = Data.Type
+        if type not in [t.INT, t.STR, t.BOOL, t.FLOAT]:
+            raise Error.RuntimeError(BAD_VALUE, "Type argument must be int|str|bool|float!", ctx)
 
         strInput = ctx.input.readline().strip()
         strInput = strInput.lower() if type == Data.Type.BOOL else strInput # If it is bool type it does not matter letter case
@@ -328,7 +538,7 @@ class Op:
         t = Data.Type 
         str2DataType = {
             t.BOOL : "bool", t.INT : "int", 
-            t.NIL : "nil", t.STR : "string"
+            t.NIL : "nil", t.STR : "string", t.FLOAT : "float"
         }
 
         result = None
@@ -348,29 +558,19 @@ class Op:
         ctx.setNextInstructionIndex(targetIndex)
 
 
-    def conditionEval(ctx : ProgramContext, args : list, f : str = 'EQ') -> bool:
+    def jumpifeq(ctx : ProgramContext, args : list):
         lOp = ctx.getData(args[1])
         rOp = ctx.getData(args[2])
 
-        lOpType = lOp.getType()
-        rOpType = rOp.getType()
-        t = Data.Type
-        if lOpType != rOpType or (lOpType == t.NIL and rOpType == t.NIL):
-            raise Error.RuntimeError(BAD_TYPES, "Incompatible types of conditional jump (expected same types or one NIL type)", ctx)
-
-        if f == 'NEQ':
-            return lOp.getValue() != rOp.getValue()
-        else:
-            return lOp.getValue() == rOp.getValue()
-
-
-    def jumpifeq(ctx : ProgramContext, args : list):
-        if __class__.conditionEval(ctx, args, 'EQ'):
+        if Utils.conditionEval(ctx, lOp, rOp, 'EQ'):
             __class__.jump(ctx, args)
 
 
     def jumpifneq(ctx : ProgramContext, args : list):
-        if __class__.conditionEval(ctx, args, 'NEQ'):
+        lOp = ctx.getData(args[1])
+        rOp = ctx.getData(args[2])
+
+        if Utils.conditionEval(ctx, lOp, rOp, 'NEQ'):
             __class__.jump(ctx, args)
 
 
@@ -413,13 +613,114 @@ class Op:
         print("Frame stack: "+str(ctx.frameStack), end='\n\n', file=sys.stderr)
         print("-------------", file=sys.stderr)
 
+    #------------------------------ STACK INSTRUCTIONS ------------------------
+    
+    def clears(ctx : ProgramContext, args : list):
+        ctx.dataStack.clear()
+
+    
+    def adds(ctx : ProgramContext, args : list):
+        Utils.stackArithmetics(ctx, 'ADD')
+
+
+    def muls(ctx : ProgramContext, args : list):
+        Utils.stackArithmetics(ctx, 'MUL')
+
+
+    def subs(ctx : ProgramContext, args : list):
+        Utils.stackArithmetics(ctx, 'SUB')
+
+
+    def idivs(ctx : ProgramContext, args : list):
+        Utils.stackArithmetics(ctx, 'IDIV')
+
+
+    def divs(ctx : ProgramContext, args : list):
+        Utils.stackArithmetics(ctx, 'DIV')
+
+
+    def int2floats(ctx : ProgramContext, args : list):
+        toBeConverted = ctx.dataStack.pop()
+
+        result = Utils.int2float(ctx, toBeConverted)
+
+        ctx.dataStack.push(result)
+
+
+    def float2ints(ctx : ProgramContext, args : list):
+        toBeConverted = ctx.dataStack.pop()
+
+        result = Utils.float2int(ctx, toBeConverted)
+
+        ctx.dataStack.push(result)
+
+
+    def lts(ctx : ProgramContext, args : list):
+        Utils.stackComparing(ctx, 'LT')
+
+
+    def gts(ctx : ProgramContext, args : list):
+        Utils.stackComparing(ctx, 'GT')
+
+
+    def eqs(ctx : ProgramContext, args : list):
+        Utils.stackComparing(ctx, 'EQ')
+
+
+    def ands(ctx : ProgramContext, args : list):
+        Utils.stackLogic(ctx, 'AND')
+
+
+    def ors(ctx : ProgramContext, args : list):
+        Utils.stackLogic(ctx, 'OR')
+
+
+    def nots(ctx : ProgramContext, args : list):
+        Utils.stackLogic(ctx, 'NOT')
+
+
+    def int2chars(ctx : ProgramContext, args : list):
+        ordinalValue = ctx.dataStack.pop()
+
+        result = Utils.int2char(ctx, ordinalValue)
+
+        ctx.frameStack.push(result)
+
+
+    def stri2ints(ctx : ProgramContext, args : list):
+        index = ctx.dataStack.pop()
+        string = ctx.dataStack.pop()
+
+        # String is in unicode so it should be valid character for ord
+        result = ord(Utils.getCharAtIndex(ctx, string, index))
+        
+        ctx.dataStack.push(Data(Data.Type.INT, result))
+
+
+    def jumpifeqs(ctx : ProgramContext, args : list):
+        rOp = ctx.dataStack.pop()
+        lOp = ctx.dataStack.pop()
+
+        if Utils.conditionEval(ctx, lOp, rOp, 'EQ'):
+            __class__.jump(ctx, args)
+
+
+    def jumpifneqs(ctx : ProgramContext, args : list):
+        rOp = ctx.dataStack.pop()
+        lOp = ctx.dataStack.pop()
+
+        if Utils.conditionEval(ctx, lOp, rOp, 'NEQ'):
+            __class__.jump(ctx, args)
+
+
+
     def nop(ctx : ProgramContext, args : list):
         pass
 
 
 class Lang:
     """Contains specification of source language elements and converter 
-    statical methods
+    static methods
 
     The most important attributes:
         INSTRUCTIONS (dict): contains table with all supported instructions,
@@ -463,7 +764,9 @@ class Lang:
         # Conversions
         "INT2CHAR"          : [Op.int2char, ["var", "symb"]],
         "STRI2INT"          : [Op.stri2int, ["var", "symb", "symb"]],
-        # IO
+        "INT2FLOAT"         : [Op.int2float, ["var", "symb"]],
+        "FLOAT2INT"         : [Op.float2int, ["var", "symb"]],
+        # IO        
         "READ"              : [Op.read, ["var", "type"]],
         "WRITE"             : [Op.write, ["symb"]],
         # String operations
@@ -480,8 +783,28 @@ class Lang:
         "JUMPIFNEQ"         : [Op.jumpifneq, ["label", "symb", "symb"]],
         "EXIT"              : [Op.exitF, ["symb"]],
         # Debugging
-        "DPRINT"             : [Op.dprint, ["symb"]],
-        "BREAK"              : [Op.breakF, []],
+        "DPRINT"            : [Op.dprint, ["symb"]],
+        "BREAK"             : [Op.breakF, []],
+
+        # Stack variants
+        "CLEARS"            : [Op.clears, []],
+        "ADDS"              : [Op.adds, []],
+        "SUBS"              : [Op.subs, []],
+        "MULS"              : [Op.muls, []],
+        "IDIVS"             : [Op.idivs, []],
+        "DIVS"              : [Op.divs, []],
+        "FLOAT2INTS"        : [Op.float2ints, []],
+        "INT2FLOATS"        : [Op.int2floats, []],
+        "LTS"               : [Op.lts, []],
+        "GTS"               : [Op.gts, []],
+        "EQS"               : [Op.eqs, []],
+        "ANDS"              : [Op.ands, []],
+        "ORS"               : [Op.ors, []],
+        "NOTS"              : [Op.nots, []],
+        "INT2CHARS"         : [Op.int2chars, []],
+        "STRIN2INTS"        : [Op.stri2ints, []],
+        "JUMPIFEQS"         : [Op.jumpifeqs, []],
+        "JUMPIFNEQS"        : [Op.jumpifneqs, []],
     }
 
     LABEL_INSTRUCTIONS = ["LABEL"]
@@ -493,6 +816,7 @@ class Lang:
         "int" : Data.Type.INT,
         "bool" : Data.Type.BOOL,
         "nil" : Data.Type.NIL,
+        "float" : Data.Type.FLOAT,
 
         "var" : Operand.Type.VAR,
         "label" : Operand.Type.LABEL,
@@ -510,6 +834,7 @@ class Lang:
         Data.Type.STR : "^(([^\u0000-\u0020\s\\\]|(\\\[0-9]{3}))*|nil)$",
         Data.Type.INT : "^[-\+]?(([1-9]((_)?[0-9]+)*)|(0[oO]?[0-7]((_)?[0-7]+)*)|(0[xX][0-9A-Fa-f]((_)?[0-9A-Fa-f]+)*)|(0)|nil)$",
         Data.Type.BOOL: "^(true|false|nil)$",
+        Data.Type.FLOAT: "^[-\+]?((\d+(.\d+)?(e[-\+]\d+?)?)|(0[xX][0-9a-zA-Z]+(.[0-9a-zA-Z]+)?(p[-\+][0-9a-zA-Z]+?)?))$",
 
         Operand.Type.LABEL : "^[a-zA-Z_\-$&%\*!?][a-zA-Z_\-$&%\*!?0-9]*$",
         Operand.Type.TYPE  : "^(bool|int|string|nil)$",
@@ -572,6 +897,12 @@ class Lang:
             # Replacing leading zero for octal format mark (in the source language spec. leading zero means octal format)
             withoutLeadingZeros = re.sub("^(0+)([1-9])", r"0o\2", string)
             return int(withoutLeadingZeros, 0) 
+        
+        elif type == Data.Type.FLOAT:
+            if re.search('^0x', string):
+                return float.fromhex(string)
+            else:
+                return float(string)
 
 
     @staticmethod
@@ -626,6 +957,8 @@ class Lang:
                 return "nil"
             elif dtype == Data.Type.INT:
                 return "int"
+            elif dtype == Data.Type.FLOAT:
+                return "float"
             elif dtype == Data.Type.STR:
                 return "string"
             else:
@@ -699,6 +1032,8 @@ class Lang:
             elif stringSymbol == "nil" and dtype == Data.Type.NIL:
                 return True
             elif stringSymbol == "bool" and dtype == Data.Type.BOOL:
+                return True
+            elif stringSymbol == "float" and dtype == Data.Type.FLOAT:
                 return True
             else:
                 return False

@@ -2,7 +2,7 @@
 # Author: Vojtech Dvorak (xdvora3o)
 
 """Contains error variables with corresponding error codes
-class 'Error' with statical methods, that are used to printing errors and
+class 'Error' with static methods, that are used to printing errors and
 exiting wiht specific error code. Also contains specific exception classes.
 """
 
@@ -28,7 +28,7 @@ INVALID_STRING_OP = 58
 INTERNAL_ERROR = 99
 
 class Error:
-    """Contains statical method for error handling and exception subclasses"""
+    """Contains static method for error handling and exception subclasses"""
 
     @staticmethod
     def printGeneral(e : Exception):
