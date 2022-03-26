@@ -1,3 +1,10 @@
+# IPP project 2. part
+# Author: Vojtech Dvorak (xdvora3o)
+
+"""Contains class with implementation of instructions (Op) and class with
+description of input lanugaugage (Lang)
+"""
+
 import re
 from errors import *
 from program import Data, Literal, Operand, ProgramContext, Variable
@@ -11,22 +18,16 @@ class Op:
     """
 
     def move(ctx : ProgramContext, args : list):
-        """Assigns data specified in second arg to variable specified in first arg"""
-
         dst = args[0]
         src = args[1]
         ctx.setVar(dst, ctx.getData(src))
 
 
     def createFrame(ctx : ProgramContext, args : list):
-        """Creates new temporary frames, and deletes old one if there was any"""
-
         ctx.newTempFrame()
 
 
     def pushFrame(ctx : ProgramContext, args : list):
-        """Pushes temporary frame to the frame stack"""
-
         TFToBePushed = ctx.getFrame(Variable.Frame.TEMPORARY)
         ctx.frameStack.push(TFToBePushed)
         ctx.updateLocalFrame() # Stack with frames is changing -> need to update LF
@@ -34,23 +35,16 @@ class Op:
 
 
     def popFrame(ctx : ProgramContext, args : list):
-        """Pops temporary frame from top of the frames to temporary frame"""
-
-        curOrder = ctx.getNextInstructionOrder() # Just for better error message
-        ctx.frames[Variable.Frame.TEMPORARY] = ctx.frameStack.pop(curOrder)
+        ctx.frames[Variable.Frame.TEMPORARY] = ctx.frameStack.pop()
         ctx.updateLocalFrame() # Stack with frames is changing -> need to update LF
 
 
     def defVar(ctx : ProgramContext, args : list):
-        """Defines new uninitalized variable in program context"""
-
         newVar = args[0]
         ctx.addVar(newVar)
 
     
     def call(ctx : ProgramContext, args : list):
-        """Saves position to call stack and performs jump to given label (fction)"""
-
         retIndex = ctx.getNextInstructionIndex() # Store function (call) context to stack
         retFunc = ctx.getCurrentFunction()
         ctx.callStack.push((retIndex, retFunc))
@@ -61,27 +55,20 @@ class Op:
 
 
     def retFromCall(ctx : ProgramContext, args : list):
-        """Pops top of the call stack and returns to place in code, where was call performed"""
-
-        curOrder = ctx.getNextInstructionOrder() # For better err msg and debuging
-        retIndex, retFunc = ctx.callStack.pop(curOrder) # Pick up old function context from stack
+        retIndex, retFunc = ctx.callStack.pop() # Pick up old function context from stack
         ctx.setNextInstructionIndex(retIndex) # Jumping back
         ctx.setCurrentFunction(retFunc)
 
     
     def pushs(ctx : ProgramContext, args : list):
-        """Pushes data to the data stack"""
-
         toStore = args[0]
         dataToStore = ctx.getData(toStore)
         ctx.dataStack.push(dataToStore)
 
 
     def pops(ctx : ProgramContext, args : list):
-        curOrder = ctx.getNextInstructionOrder()
-
         dstVar = args[0]
-        poppedData = ctx.dataStack.pop(curOrder)
+        poppedData = ctx.dataStack.pop()
         
         ctx.setVar(dstVar, poppedData)
 
@@ -92,7 +79,7 @@ class Op:
         rOp = ctx.getData(args[2])
 
         if lOp.getType() != Data.Type.INT or rOp.getType() != Data.Type.INT:
-            raise Error.RuntimeError(BAD_TYPES, "Integer arithmetic instruction can operate only with INTEGERS!", ctx.getNextInstructionOrder())
+            raise Error.RuntimeError(BAD_TYPES, "Integer arithmetic instruction can operate only with INTEGERS!", ctx)
 
         result = None
         if f == 'SUB':
@@ -101,7 +88,7 @@ class Op:
             result = lOp.getValue() * rOp.getValue()
         elif f == 'IDIV':
             if rOp.getValue() == 0:
-                raise Error.RuntimeError(BAD_VALUE, "Division by ZERO!", ctx.getNextInstructionOrder())
+                raise Error.RuntimeError(BAD_VALUE, "Division by ZERO!", ctx)
             result = lOp.getValue() // rOp.getValue()
         else:
             result = lOp.getValue() + rOp.getValue()
@@ -131,14 +118,14 @@ class Op:
         rOp = ctx.getData(args[2])
 
         if lOp.getType() != rOp.getType():
-            raise Error.RuntimeError(BAD_TYPES, "Compared values must have same type (or with equality, there can be NIL type)!", ctx.getNextInstructionOrder())
+            raise Error.RuntimeError(BAD_TYPES, "Compared values must have same type (or with equality, there can be NIL type)!", ctx)
 
         result = None
         if f == 'EQ':
             result = lOp.getValue() == rOp.getValue()
         else:
             if lOp.getType() == Data.Type.NIL or rOp.getType() == Data.Type.NIL:
-                raise Error.RuntimeError(BAD_TYPES, "NIL can be compared only with equality!", ctx.getNextInstructionOrder())
+                raise Error.RuntimeError(BAD_TYPES, "NIL can be compared only with equality!", ctx)
             
             if f == 'LT':
                 result = lOp.getValue() < rOp.getValue()
@@ -165,14 +152,14 @@ class Op:
         lOp = ctx.getData(args[1])
 
         if lOp.getType() != Data.Type.BOOL:
-            raise Error.RuntimeError(BAD_TYPES, "Logical functions can operate only with BOOL values!", ctx. getNextInstructionOrder())
+            raise Error.RuntimeError(BAD_TYPES, "Logical functions can operate only with BOOL values!", ctx)
 
         result = None
         if f in ['AND', 'OR']:
             rOp = ctx.getData(args[2])
 
             if rOp.getType() != Data.Type.BOOL:
-                raise Error.RuntimeError(BAD_TYPES, "Both operands of logical functions must have BOOL values!", ctx. getNextInstructionOrder())
+                raise Error.RuntimeError(BAD_TYPES, "Both operands of logical functions must have BOOL values!", ctx)
             
             if f == 'AND':
                 result = lOp.getValue() and rOp.getValue()
@@ -201,12 +188,12 @@ class Op:
         ordinal = ctx.getData(args[1])
 
         if ordinal.getType() != Data.Type.INT:
-            raise Error.RuntimeError(BAD_TYPES, "Bad data types of operands of instruction INT2CHAR (expected INTEGER)!", ctx.getNextInstructionOrder())
+            raise Error.RuntimeError(BAD_TYPES, "Bad data types of operands of instruction INT2CHAR (expected INTEGER)!", ctx)
 
         try:
             char = chr(ordinal)
         except ValueError:
-            raise Error.RuntimeError(INVALID_STRING_OP, "Invalid unicode ordinal value! Cannot be converted!", ctx.getNextInstructionOrder())
+            raise Error.RuntimeError(INVALID_STRING_OP, "Invalid unicode ordinal value! Cannot be converted!", ctx)
 
         ctx.setVar(dst, Data(Data.Type.STR, char))
 
@@ -217,14 +204,14 @@ class Op:
 
         t = Data.Type
         if string.getType() != t.STR or index.getType() != t.INT:
-            raise Error.RuntimeError(BAD_TYPES, "Bad data types of operands of instruction STRI2INIT", ctx.getNextInstructionOrder())
+            raise Error.RuntimeError(BAD_TYPES, "Bad data types of operands of instruction STRI2INIT!", ctx)
 
         indexInt = index.getValue()
         stringLen = len(string.getValue())
 
         # It is possible to index string from back (by negative numbers)
         if indexInt >= stringLen or indexInt < -stringLen:
-            raise Error.RuntimeError(INVALID_STRING_OP, "Index outside string!", ctx.getNextInstructionOrder())
+            raise Error.RuntimeError(INVALID_STRING_OP, "Index outside string!", ctx)
 
         return string.getValue()[indexInt]
 
@@ -242,7 +229,7 @@ class Op:
         type = args[1].getTypeVal()
 
         if type not in [Data.Type.INT, Data.Type.STR, Data.Type.BOOL]:
-            raise Error.RuntimeError(BAD_VALUE, "Type argument must be int|str|bool!", ctx.getNextInstructionOrder())
+            raise Error.RuntimeError(BAD_VALUE, "Type argument must be int|str|bool!", ctx)
 
         strInput = ctx.input.readline().strip()
         strInput = strInput.lower() if type == Data.Type.BOOL else strInput # If it is bool type it does not matter letter case
@@ -285,7 +272,7 @@ class Op:
 
         t = Data.Type
         if lPart.getType() != t.STR or rPart.getType() != t.STR:
-            raise Error.RuntimeError(BAD_TYPES, "Expected STR values as operands of CONCAT!", ctx.getNextInstructionOrder())
+            raise Error.RuntimeError(BAD_TYPES, "Expected STR values as operands of CONCAT!", ctx)
 
         ctx.setVar(dst, Data(t.STR, lPart.getValue() + rPart.getValue()))
 
@@ -295,7 +282,7 @@ class Op:
         string = ctx.getData(args[1])
 
         if string.getType() != Data.Type.STR:
-            raise Error.RuntimeError(BAD_TYPES, "Expected STR value as operand of STRLEN!", ctx.getNextInstructionOrder())
+            raise Error.RuntimeError(BAD_TYPES, "Expected STR value as operand of STRLEN!", ctx)
 
         ctx.setVar(dst, Data(Data.Type.STR, len(string.getValue())))
 
@@ -319,13 +306,13 @@ class Op:
         srcType = src.getType()
         indexType = index.getType()
         if dstType != t.STR or srcType != t.STR or indexType != t.INT:
-            raise Error.RuntimeError(BAD_TYPES, "Invalid data types of operands of SETCHAR instruction!", ctx.getNextInstructionOrder())
+            raise Error.RuntimeError(BAD_TYPES, "Invalid data types of operands of SETCHAR instruction!", ctx)
 
         indexInt = index.getValue()
         if not src.getValue():
-            raise Error.RuntimeError(INVALID_STRING_OP, "Last operand of SETCHAR cannot be empty string!", ctx.getNextInstructionOrder())
+            raise Error.RuntimeError(INVALID_STRING_OP, "Last operand of SETCHAR cannot be empty string!", ctx)
         if indexInt >= len(dst.getValue()) or indexInt < len(dst.getValue()):
-            raise Error.RuntimeError(INVALID_STRING_OP, "Index outside string!", ctx.getNextInstructionOrder())
+            raise Error.RuntimeError(INVALID_STRING_OP, "Index outside string!", ctx)
 
         result = dst.getValue()
         result[indexInt] = src.getValue()[0]
@@ -369,7 +356,7 @@ class Op:
         rOpType = rOp.getType()
         t = Data.Type
         if lOpType != rOpType or (lOpType == t.NIL and rOpType == t.NIL):
-            raise Error.RuntimeError(BAD_TYPES, "Incompatible types of conditional jump (expected same types or one NIL type)", ctx.getNextInstructionOrder())
+            raise Error.RuntimeError(BAD_TYPES, "Incompatible types of conditional jump (expected same types or one NIL type)", ctx)
 
         if f == 'NEQ':
             return lOp.getValue() != rOp.getValue()
@@ -391,12 +378,12 @@ class Op:
         exitCode = ctx.getData(args[0])
 
         if exitCode.getType() != Data.Type.INT:
-            raise Error.RuntimeError(BAD_TYPES, "Expected INT value as return code!", ctx.getNextInstructionOrder())
+            raise Error.RuntimeError(BAD_TYPES, "Expected INT value as return code!", ctx)
         
         min = 0
         max = 49
         if exitCode.getValue() < min or exitCode.getValue() > max:
-            raise Error.RuntimeError(BAD_VALUE, "Exit code must be integer between "+str(min)+" and "+str(max)+" (included)!", ctx.getNextInstructionOrder())
+            raise Error.RuntimeError(BAD_VALUE, "Exit code must be integer between "+str(min)+" and "+str(max)+" (included)!", ctx)
 
         ctx.setReturnCode(exitCode.getValue())
         ctx.setNextInstructionIndex(None)
@@ -409,7 +396,7 @@ class Op:
 
     def breakF(ctx : ProgramContext, args : list):
         total = ctx.getTotalICounter()
-        order = ctx.getNextInstructionOrder()
+        order = ctx.getInstruction()
 
         lf = ctx.frames[Variable.Frame.LOCAL]
         gf = ctx.frames[Variable.Frame.GLOBAL]
@@ -431,6 +418,20 @@ class Op:
 
 
 class Lang:
+    """Contains specification of source language elements and converter 
+    statical methods
+
+    The most important attributes:
+        INSTRUCTIONS (dict): contains table with all supported instructions,
+            expected type of their operands and with corresponding function
+        OPERAND_TYPES (dict): associates input type of operands with inner
+            representation of datatypes (by Data.Type enum)
+        FRAMES (dict): associates strings, that specify frames, with values
+            of enum Variable.Frame (that is used in script)
+        OPERAND_FORMAT (dict): contains regular expression strings for all
+            type of operands (to make additiional checks in internal parser)
+    """
+
     FUNC_INDEX = 0
     OP_INDEX = 1
 
@@ -520,6 +521,15 @@ class Lang:
 
     @staticmethod
     def isValidFormated(type, str : str) -> bool:
+        """Checks format of given string that represents operant of 
+        given type (in most cases, this method will be unnecessary, because
+        there is parse.php, that checks the same thing)
+
+        Args:
+            type (Operand.Type): operand type, due to will be check done 
+            str (str): input string to be checked
+        """
+
         if re.search(__class__.OPERAND_FORMAT[type], str):
             return True
         else:
@@ -528,7 +538,12 @@ class Lang:
 
     @staticmethod
     def str2value(type : Data.Type, string : str):
-        """Converts string to python data type"""
+        """Converts string to python data type
+        
+        Args:
+            type (Data.Type): Type of data that should the result value have
+            string (str): input string, that will be converted to data
+        """
 
         def replaceEscSequence(match : re.Match):
             """Callback function for replacing escape sequences in strings"""
@@ -585,17 +600,21 @@ class Lang:
 
 
     @staticmethod
-    def getOperandTypes(opcode : str):
+    def getOperandTypes(opcode : str) -> str:
         return __class__.INSTRUCTIONS[opcode][__class__.OP_INDEX]
 
 
     @staticmethod
-    def getType(strType : str):
+    def getType(strType : str) -> Operand.Type:
         return __class__.OPERAND_TYPES[strType]
 
 
     @staticmethod
-    def op2Str(op : Operand):
+    def op2Str(op : Operand) -> str:
+        """Converts operand to readable representation
+        (e.g. for err. msgs) containing its type
+        """
+
         type = op.getType()
         if type == Operand.Type.VAR:
             return "var"
@@ -621,11 +640,15 @@ class Lang:
 
     @staticmethod
     def isNewVarInstruction(opcode : str) -> bool:
+        """Checks whether the instructions declares new variable (for semantic checks)"""
+
         return opcode in __class__.NEW_VAR_INSTRUCTIONS
 
 
     @staticmethod
     def splitVarName(varName : str):
+        """Splits whole variable name to frame name and variable name"""
+
         frame, name = varName.split(__class__.VAR_DELIM_CHAR)
         
         return frame, name
@@ -633,11 +656,15 @@ class Lang:
 
     @staticmethod
     def isLabelInstrucion(opcode : str) -> bool:
+        """Checks whether instruction defines new label (for semantic checks)"""
+
         return opcode in __class__.LABEL_INSTRUCTIONS
 
 
     @staticmethod
     def isJumpInstruction(opcode : str) -> bool:
+        """Checks whether instruction perform jump (usefull for semantic checks)"""
+
         return opcode in __class__.JUMP_INSTRUCTIONS
 
 
@@ -646,6 +673,10 @@ class Lang:
         """
         Checks if operand is compatible with descripted argument type in 
         INSTRUCTION dictionary
+
+        Args:
+            operand (Operand): input operand converted to operand object
+            stringSymbol (str): string symbol from table with instructions
         """
 
         symbolCompatible = [Operand.Type.VAR, Operand.Type.LITERAL]
