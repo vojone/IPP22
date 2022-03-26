@@ -142,44 +142,51 @@ class IParser:
 
 
     @staticmethod
-    def createOperand(content : str, type):
+    def createOperand(number : int, content : str, type):
         if type in Data.Type:
             value = Lang.str2value(type, content) # Getting corresponding value
-            return Literal(content, type, value)
+            return Literal(number, content, type, value)
 
         elif type == Operand.Type.VAR:
             frame, name = Lang.splitVarName(content)
             frameMark = Lang.str2frame(frame)
-            return Variable(content, frameMark, name)
+            return Variable(number, content, frameMark, name)
 
         elif type == Operand.Type.TYPE:
             convType = Lang.getType(content)
-            return Type(content, convType)
+            return Type(number, content, convType)
 
         else:
-            return Operand(type, content)
+            return Operand(number, type, content)
+
+    @staticmethod
+    def checkNumberingOfOperands(opcode : str, order : int, operands : list):
+         for index, op in enumerate(operands):
+            if index + 1 != op.getNumber():
+                raise Error.XMLError(BAD_XML, "Bad numbering of operands of of instruction "+opcode+" (ord.: "+str(order)+")!")
 
 
     @staticmethod
     def getOperands(opcode : str, order : int, instruction : xml.Node):
         xmlOps = __class__.safeGetChildren(__class__.ARG_TAG_RE, instruction)
-        # TODO - it does not matter on order in XML it depends only on argX tag
         operands = []
-        for index, op in enumerate(xmlOps):
+        for op in xmlOps:
             tagName = op.tagName
-            if int(re.sub(__class__.ARG_TAG_RE, r"\1", tagName)) != index + 1:
-                raise Error.XMLError(BAD_XML, "Bad numbering of arguments of instruction "+opcode+" (ord.: "+str(order)+")!")
+            opNumber = int(re.sub(__class__.ARG_TAG_RE, r"\1", tagName))
 
             xmlType = __class__.safeGetAttribute(__class__.TYPE_ATTR, op)
             if not Lang.isType(xmlType):
-                raise Error.XMLError(BAD_XML, "Unknown argument type '"+xmlType+"' of instruction "+opcode+" (ord.: "+str(order)+")!")
+                raise Error.XMLError(BAD_XML, "Unknown operand type '"+xmlType+"' of instruction "+opcode+" (ord.: "+str(order)+")!")
 
             type = Lang.getType(xmlType)
             content = __class__.safeGetData(op, canBeEmpty=True)
             if not Lang.isValidFormated(type, content):
                 raise Error.XMLError(BAD_XML, "Bad format of operand '"+content+"' of instruction "+opcode+" (ord.: "+str(order)+")!")
 
-            operands.append(__class__.createOperand(content, type))
+            operands.append(__class__.createOperand(opNumber, content, type))
+
+        operands.sort(key=Operand.getNumber)
+        __class__.checkNumberingOfOperands(opcode, order, operands)
 
         return operands
 

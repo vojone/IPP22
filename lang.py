@@ -11,16 +11,22 @@ class Op:
     """
 
     def move(ctx : ProgramContext, args : list):
+        """Assigns data specified in second arg to variable specified in first arg"""
+
         dst = args[0]
         src = args[1]
         ctx.setVar(dst, ctx.getData(src))
 
 
     def createFrame(ctx : ProgramContext, args : list):
+        """Creates new temporary frames, and deletes old one if there was any"""
+
         ctx.newTempFrame()
 
 
     def pushFrame(ctx : ProgramContext, args : list):
+        """Pushes temporary frame to the frame stack"""
+
         TFToBePushed = ctx.getFrame(Variable.Frame.TEMPORARY)
         ctx.frameStack.push(TFToBePushed)
         ctx.updateLocalFrame() # Stack with frames is changing -> need to update LF
@@ -28,40 +34,54 @@ class Op:
 
 
     def popFrame(ctx : ProgramContext, args : list):
-        ctx.frames[Variable.Frame.TEMPORARY] = ctx.frameStack.pop()
+        """Pops temporary frame from top of the frames to temporary frame"""
+
+        curOrder = ctx.getNextInstructionOrder() # Just for better error message
+        ctx.frames[Variable.Frame.TEMPORARY] = ctx.frameStack.pop(curOrder)
         ctx.updateLocalFrame() # Stack with frames is changing -> need to update LF
 
 
     def defVar(ctx : ProgramContext, args : list):
+        """Defines new uninitalized variable in program context"""
+
         newVar = args[0]
         ctx.addVar(newVar)
 
     
     def call(ctx : ProgramContext, args : list):
+        """Saves position to call stack and performs jump to given label (fction)"""
+
         retIndex = ctx.getNextInstructionIndex() # Store function (call) context to stack
         retFunc = ctx.getCurrentFunction()
-        ctx.frameStack.push((retIndex, retFunc))
+        ctx.callStack.push((retIndex, retFunc))
 
         __class__.jump(ctx, args) # Jumping to new function (label)
-        targetLabel = args[0].getContent() 
+        targetLabel = args[0].getContent()
         ctx.setCurrentFunction(targetLabel)
 
 
     def retFromCall(ctx : ProgramContext, args : list):
-        retIndex, retFunc = ctx.callStack.pop() # Pick up old function context from stack
+        """Pops top of the call stack and returns to place in code, where was call performed"""
+
+        curOrder = ctx.getNextInstructionOrder() # For better err msg and debuging
+        retIndex, retFunc = ctx.callStack.pop(curOrder) # Pick up old function context from stack
         ctx.setNextInstructionIndex(retIndex) # Jumping back
         ctx.setCurrentFunction(retFunc)
 
     
     def pushs(ctx : ProgramContext, args : list):
+        """Pushes data to the data stack"""
+
         toStore = args[0]
         dataToStore = ctx.getData(toStore)
         ctx.dataStack.push(dataToStore)
 
 
     def pops(ctx : ProgramContext, args : list):
+        curOrder = ctx.getNextInstructionOrder()
+
         dstVar = args[0]
-        poppedData = ctx.dataStack.pop()
+        poppedData = ctx.dataStack.pop(curOrder)
         
         ctx.setVar(dstVar, poppedData)
 
@@ -94,7 +114,7 @@ class Op:
 
 
     def sub(ctx : ProgramContext, args : list):
-        __class__.integerArithmetics3(ctx, args, 'SUBB')
+        __class__.integerArithmetics3(ctx, args, 'SUB')
 
 
     def mul(ctx : ProgramContext, args : list):
@@ -161,7 +181,7 @@ class Op:
         else:
             result = not lOp.getValue()
 
-        ctx.setVar(dst, Data(Data.Type.BOOL))
+        ctx.setVar(dst, Data(Data.Type.BOOL, result))
 
 
     def andF(ctx : ProgramContext, args : list):
@@ -181,12 +201,12 @@ class Op:
         ordinal = ctx.getData(args[1])
 
         if ordinal.getType() != Data.Type.INT:
-            raise RuntimeError(BAD_TYPES, "Bad data types of operands of instruction INT2CHAR (expected INTEGER)!", ctx.getNextInstructionOrder)
+            raise Error.RuntimeError(BAD_TYPES, "Bad data types of operands of instruction INT2CHAR (expected INTEGER)!", ctx.getNextInstructionOrder())
 
         try:
             char = chr(ordinal)
         except ValueError:
-            raise RuntimeError(INVALID_STRING_OP, "Invalid unicode ordinal value! Cannot be converted!", ctx.getNextInstructionOrder)
+            raise Error.RuntimeError(INVALID_STRING_OP, "Invalid unicode ordinal value! Cannot be converted!", ctx.getNextInstructionOrder())
 
         ctx.setVar(dst, Data(Data.Type.STR, char))
 
@@ -197,14 +217,14 @@ class Op:
 
         t = Data.Type
         if string.getType() != t.STR or index.getType() != t.INT:
-            raise RuntimeError(BAD_TYPES, "Bad data types of operands of instruction STRI2INIT", ctx.getNextInstructionOrder)
+            raise Error.RuntimeError(BAD_TYPES, "Bad data types of operands of instruction STRI2INIT", ctx.getNextInstructionOrder())
 
         indexInt = index.getValue()
         stringLen = len(string.getValue())
 
         # It is possible to index string from back (by negative numbers)
-        if (indexInt >= stringLen) or (indexInt < stringLen):
-            raise RuntimeError(INVALID_STRING_OP, "Index outside string!", ctx.getNextInstructionOrder)
+        if indexInt >= stringLen or indexInt < -stringLen:
+            raise Error.RuntimeError(INVALID_STRING_OP, "Index outside string!", ctx.getNextInstructionOrder())
 
         return string.getValue()[indexInt]
 
@@ -305,7 +325,7 @@ class Op:
         if not src.getValue():
             raise Error.RuntimeError(INVALID_STRING_OP, "Last operand of SETCHAR cannot be empty string!", ctx.getNextInstructionOrder())
         if indexInt >= len(dst.getValue()) or indexInt < len(dst.getValue()):
-            raise RuntimeError(INVALID_STRING_OP, "Index outside string!", ctx.getNextInstructionOrder)
+            raise Error.RuntimeError(INVALID_STRING_OP, "Index outside string!", ctx.getNextInstructionOrder())
 
         result = dst.getValue()
         result[indexInt] = src.getValue()[0]
@@ -348,13 +368,13 @@ class Op:
         lOpType = lOp.getType()
         rOpType = rOp.getType()
         t = Data.Type
-        if lOpType != rOpType or lOpType == t.NIL and rOpType == t.NIL:
+        if lOpType != rOpType or (lOpType == t.NIL and rOpType == t.NIL):
             raise Error.RuntimeError(BAD_TYPES, "Incompatible types of conditional jump (expected same types or one NIL type)", ctx.getNextInstructionOrder())
 
         if f == 'NEQ':
-            return lOp.getValue() != rOp.getValue
+            return lOp.getValue() != rOp.getValue()
         else:
-            return lOp.getValue() == rOp.getValue
+            return lOp.getValue() == rOp.getValue()
 
 
     def jumpifeq(ctx : ProgramContext, args : list):
@@ -388,9 +408,23 @@ class Op:
 
 
     def breakF(ctx : ProgramContext, args : list):
-        # TODO
-        pass
+        total = ctx.getTotalICounter()
+        order = ctx.getNextInstructionOrder()
 
+        lf = ctx.frames[Variable.Frame.LOCAL]
+        gf = ctx.frames[Variable.Frame.GLOBAL]
+        tf = ctx.frames[Variable.Frame.TEMPORARY]
+
+        print("-------------", file=sys.stderr)
+        print("Break at: "+str(order)+" (executed i.: "+str(total)+")", end='\n\n', file=sys.stderr)
+        print("Variable frames: ", file=sys.stderr)
+        print("GF: "+str(gf), file=sys.stderr)
+        print("LF: "+str(lf if lf != None else "Undef."), file=sys.stderr)
+        print("TF: "+str(tf if tf != None else "Undef."), end='\n\n', file=sys.stderr)
+        print("Call st.: "+str(ctx.callStack), end='\n\n', file=sys.stderr)
+        print("Data stack: "+str(ctx.dataStack), end='\n\n', file=sys.stderr)
+        print("Frame stack: "+str(ctx.frameStack), end='\n\n', file=sys.stderr)
+        print("-------------", file=sys.stderr)
 
     def nop(ctx : ProgramContext, args : list):
         pass

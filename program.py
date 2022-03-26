@@ -17,6 +17,9 @@ class Data:
         self.type = type
         self.setValue(value)
 
+    def __str__(self):
+        return "("+self.type.name+", "+str(self.value)+")"
+
     
     def isValCompatible(self, value):
         if value.__class__.__name__ == "NoneType": # Every type can have 'None' (nil) value
@@ -60,13 +63,18 @@ class Operand:
         TYPE = auto()
 
 
-    def __init__(self, type : Type, content : str):
+    def __init__(self, num : int, type : Type, content : str):
+        self.number = num
         self.type = type
         self.content = content
 
 
     def getType(self):
         return self.type
+
+    
+    def getNumber(self):
+        return self.number
 
 
     def getContent(self):
@@ -75,8 +83,8 @@ class Operand:
 
 
 class Literal(Operand):
-    def __init__(self, content : str, dataType: Data.Type, value):
-        super().__init__(super().Type.LITERAL, content)
+    def __init__(self, num : int, content : str, dataType: Data.Type, value):
+        super().__init__(num, super().Type.LITERAL, content)
         self.data = Data(dataType, value)
 
 
@@ -86,8 +94,8 @@ class Literal(Operand):
 
 
 class Type(Operand):
-    def __init__(self, content: str, typeVal):
-        super().__init__(super().Type.TYPE, content)
+    def __init__(self, num : int, content: str, typeVal):
+        super().__init__(num, super().Type.TYPE, content)
         self.typeVal = typeVal
 
     
@@ -103,8 +111,8 @@ class Variable(Operand):
         TEMPORARY = auto()
 
 
-    def __init__(self, content : str, frame : Frame, name : str):
-        super().__init__(super().Type.VAR, content)
+    def __init__(self, num : int, content : str, frame : Frame, name : str):
+        super().__init__(num, super().Type.VAR, content)
         self.frame = frame
         self.name = name
 
@@ -121,6 +129,24 @@ class Variable(Operand):
 class Stack:
     def __init__(self):
         self.elements = []
+
+    def __str__(self):
+        string = ""
+
+        for e in self.elements:
+            string += ' | ' if string != "" else ""
+            string += str(e)
+        
+        if self.elements:
+            string += " <- TOP"
+        else:
+            string = "Empty"
+
+        return string
+
+
+    def getElements(self):
+        return self.elements
 
     
     def setErr(self, emptyErrMsg = None, errCode = INTERNAL_ERROR):
@@ -150,6 +176,33 @@ class Stack:
             return self.elements[-1]
 
 
+class Frame:
+    def __init__(self, initVars = {}):
+        self.vars = initVars
+
+    def __str__(self):
+        string = "{"
+
+        for v in self.vars:
+            string += "; " if string != "{" else ""
+            string += v+"="+str(self.vars[v])
+
+        string += "}"
+
+        return string
+
+
+    def getVars(self):
+        return self.vars
+
+
+    def getVar(self, varName):
+        return self.vars[varName]
+
+
+    def setVar(self, varName, data = None):
+        self.vars[varName] = data
+
 
 class ProgramContext:
     def __init__(self, input = sys.stdin):
@@ -161,22 +214,21 @@ class ProgramContext:
         self.totalICounter = 0
 
         self.frames = {
-            Variable.Frame.GLOBAL : {},
+            Variable.Frame.GLOBAL : Frame(),
             Variable.Frame.LOCAL : None,
             Variable.Frame.TEMPORARY : None,
         }
 
         self.frameStack = Stack()
-        self.frameStack.setErr("Empty FRAME stack (unable to access top/pop it)", FRAME_NOT_EXISTS)
+        self.frameStack.setErr("Empty FRAME stack! Unable to access top/pop it!", FRAME_NOT_EXISTS)
         self.callStack = Stack()
-        self.callStack.setErr("Empty CALL stack! (unable to access top/pop it)", MISSING_VALUE)
+        self.callStack.setErr("Empty CALL stack! Unable to access top/pop it!", MISSING_VALUE)
         self.dataStack = Stack()
-        self.dataStack.setErr("Empty DATA stack! (unable to access top/pop it)", MISSING_VALUE)
+        self.dataStack.setErr("Empty DATA stack! Unable to access top/pop it!", MISSING_VALUE)
 
         self.labelMap = {}
 
-
-    def getTotalICounter(self):
+    def getTotalICounter(self) -> int:
         return self.totalICounter
 
     def incTotalICounter(self):
@@ -185,13 +237,11 @@ class ProgramContext:
     def resetTotalICounter(self):
         self.totalICounter = 0
 
-    
-    def setNextInstructionIndex(self, index :int):
-        self.nextInstructionIndex = index
-    
     def getNextInstructionIndex(self) -> int:
         return self.nextInstructionIndex
 
+    def setNextInstructionIndex(self, index :int):
+        self.nextInstructionIndex = index
 
     def setNextInstructionOrder(self, order : int):
         self.nextInstructionOrder = order
@@ -200,8 +250,8 @@ class ProgramContext:
         return self.nextInstructionOrder
 
 
-    def setCurrentFunction(self, fName):
-        self.setCurrentFunction = fName
+    def setCurrentFunction(self, fName : str):
+        self.currentFunction = fName
 
     def getCurrentFunction(self) -> str:
         return self.currentFunction
@@ -247,18 +297,19 @@ class ProgramContext:
         name = var.getName()
         frame = self.getFrame(var.getFrame())
 
-        if var in frame:
+        if var in frame.getVars():
             raise Error.RuntimeError(SEMANTIC_ERROR, "Redefinition of variable "+name+" in frame "+var.getFrame().name, self.getNextInstructionOrder())
         else:
-            frame[name] = None
+            frame.setVar(name)
 
 
     def checkVar(self, var : Variable, canBeUninit = False):
         name = var.getName()
         frame = self.getFrame(var.getFrame())
-        if not name in frame:
+
+        if not name in frame.getVars():
             raise Error.RuntimeError(VAR_NOT_EXISTS, "Variable '"+name+"' does not exists in frame "+var.getFrame().name+"!", self.getNextInstructionOrder())
-        elif frame[name] == None and not canBeUninit:
+        elif frame.getVar(name) == None and not canBeUninit:
             raise Error.RuntimeError(MISSING_VALUE, "Missing value of '"+name+"' in frame "+var.getFrame().name+"!", self.getNextInstructionOrder())
         else:
             return frame, name
@@ -266,13 +317,14 @@ class ProgramContext:
 
     def getVar(self, var : Variable, canBeUninit = False):
         frame, name = self.checkVar(var, canBeUninit)
-        return frame[name]
+
+        return frame.getVar(name)
 
 
     def setVar(self, varObj : Variable, newData : Data):
         frame, name = self.checkVar(varObj, canBeUninit=True) # Check if variable exists in frame
     
-        frame[name] = newData # Assigning new data to it
+        frame.setVar(name, newData) # Assigning new data to it
 
     
     def getData(self, operand : Operand) -> Data:
@@ -285,7 +337,7 @@ class ProgramContext:
 
     
     def newTempFrame(self):
-        self.frames[Variable.Frame.TEMPORARY] = {}
+        self.frames[Variable.Frame.TEMPORARY] = Frame()
 
 
     def clearTempFrame(self):
@@ -411,15 +463,14 @@ class Program:
         self.mapLabels()
         self.reset()
         while not self.hasEnded():
-            curInstruction = self.instructions[self.ctx.nextInstructionIndex]
-            curInstruction.do(self.ctx)
-
+            current = self.instructions[self.ctx.getNextInstructionIndex()]
+            current.do(self.ctx)
             self.ctx.incTotalICounter()
 
-            if self.hasEnded(): # Check if instruction terminates program
-                self.finish()
-            else:
-                self.nextInstruction()
+            if self.hasEnded(): # Check if instruction terminated program
+                break
+            
+            self.nextInstruction()
 
-            if self.ctx.nextInstructionIndex >= len(self.instructions):
+            if self.ctx.getNextInstructionIndex() >= len(self.instructions):
                 self.finish()

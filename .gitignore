@@ -6,6 +6,7 @@ is_it_ok.sh
 
 *.html
 
-__pycahe__/*
+__pycache__/
 
-__pycahe__/
+sample
+

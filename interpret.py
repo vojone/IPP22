@@ -78,6 +78,12 @@ class argumentParser:
         if "input" not in config and "source" not in config:
             Error.exit(ARGUMENT_ERROR, "Missing parameters! There must be at least one of the parameters --source=FILE or --input=FILE")
 
+    @staticmethod
+    def cleanUp(config : dict):
+        if "input" in config:
+            config["inputOpened"].close()
+        if "source" in config:
+            config["sourceOpened"].close()
 
 
 config = argumentParser.parseArgs(sys.argv)
@@ -86,19 +92,29 @@ argumentParser.checkConfig(config)
 interpretParser = IParser(config)
 semanticChecker = SAnalayzer()
 
+returnCode = EXIT_SUCCESS  # Imlicit return code if everything runs correctly
+
 try:
     program = interpretParser.parse()
     
     semanticChecker.checkSemantics(program)
     program.run()
+
 except Error.MException as e:
-    e.exit()
+    e.print()
+    returnCode = e.getCode()
 
-returnCode = program.getContext().getReturnCode()
-if returnCode == None:
-    sys.exit(EXIT_SUCCESS)
+except Exception as e:
+    Error.print("Unexpected exception: "+str(e))
+    print("\t("+str(e.__traceback__.tb_next.tb_frame.f_code.co_filename)+", line "+str(e.__traceback__.tb_next.tb_lineno)+")")
+    returnCode = INTERNAL_ERROR
+
 else:
-    sys.exit(returnCode)
+    programReturnCode = program.getContext().getReturnCode()
+    if programReturnCode != None:
+        returnCode = programReturnCode
 
-# TODO : Clean up - close files and etc.
+finally:
+    argumentParser.cleanUp(config)
+    sys.exit(returnCode)
 

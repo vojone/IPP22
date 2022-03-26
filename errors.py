@@ -20,6 +20,16 @@ INVALID_STRING_OP = 58
 INTERNAL_ERROR = 99
 
 class Error:
+    @staticmethod
+    def print(msg: str):
+        print("\033[1;31mError: \033[0m"+msg, file=sys.stderr)
+
+    @staticmethod
+    def exit(errCode: int, msg: str):
+        __class__.print(msg)
+        sys.exit(errCode)
+
+
     class MException(Exception):
         def __init__(self, code : int, msg : str = None):
             self.code = code
@@ -29,8 +39,10 @@ class Error:
         def print(self):
             print("\033[0;31m"+self.prefix+" \033[0m"+self.msg, file=sys.stderr)
 
+        def getCode(self):
+            return self.code
+
         def exit(self):
-            self.print()
             sys.exit(self.code)
 
     class ARGError(MException):
@@ -64,9 +76,4 @@ class Error:
 
         def print(self):
             print("\033[1;31m"+self.prefix+" \033[0m"+self.msg, file=sys.stderr)
-
-    @staticmethod
-    def exit(errCode: int, msg: str):
-        print("\033[1;31mError: \033[0m"+msg, file=sys.stderr)
-        sys.exit(errCode)
 
