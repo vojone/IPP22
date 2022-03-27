@@ -26,7 +26,7 @@
         public static $parseOnly = false;
         public static $intOnly = false;
 
-        public static $jexamPath = '/pub/courses/ipp/jexamxml/';
+        public static $jexamPath = 'jexamxml/'; //TODO
         public static $jexamJar = 'jexamxml.jar';
         public static $jexamOpts = 'options';
         public static $noclean = false;
@@ -96,6 +96,9 @@
             $this->stderr = fopen('php://stderr', 'a');
         }
 
+        /**
+         * Prints brief help to stdout
+         */
         public function printHelp() {
             echo <<<DOC
             test.php - Test framework for IPPcode22 parser and interpret (PHP8 skript)
@@ -104,11 +107,16 @@
             ./php8.1 test.php [OPTIONS]
     
             Options:
-            --help      Writes brief help to STDIN 
+            --help          Writes brief help to STDIN 
+            --directory=''  Specififes directory with tests (implicitly it is current folder)
+            --recursive     Checks nested folders in given directory
     
             DOC;
         }
 
+        /**
+         * Parses arguments from cmdline
+         */
         public function parseOpts($args) {
             if(isset($args['help'])) {
                 if(count($args) > 1) {
@@ -199,7 +207,7 @@
         }
 
         /**
-         * Function that runs DUT above given test case 
+         * Function that runs DUT above given test case - EXERCISE part
          * @param Array $test Asociative array containing paths to files that belongs to test case
          * @return Integer Return code of executed script
          */
@@ -208,7 +216,6 @@
             $tmp = $test['folder'].$test['name'].'.'.Options::$tempFileSuffix;
             $tmpXML = $test['folder'].$test['name'].'.'.Options::$tempXMLFileSuffix;
 
-            $output = null;
             if(Options::$parseOnly) {
                 exec("php8.1 ".Options::$parseScript." <\"{$test['src']}\" >\"{$tmpXML}\"", result_code : $resultCode);
             }
@@ -219,13 +226,16 @@
                 exec("php8.1 ".Options::$parseScript." <\"{$test['src']}\" >\"{$tmpXML}\"", result_code : $resultCode);
 
                 if($resultCode === 0) {
-                    exec("python3.8 ".Options::$intScript." <\"{$tmpXML}\" >\"{$tmp}\"", result_code : $resultCode);
+                    exec("python3.8 ".Options::$intScript." <\"{$tmpXML}\" --input=\"{$test['in']}\" >\"{$tmp}\"", result_code : $resultCode);
                 }
             }
 
             return $resultCode;
         }
 
+        /**
+         * Workaround method to preven premarture EOF error in jexamtool
+         */
         public function preventEmptyFiles($out, $tmpXML, &$difference) {
             //Preven premature EOF error in jexamtool
             $outContent = trim(file_get_contents($out));
@@ -251,7 +261,7 @@
         }
 
         /**
-         * Compares return codes and output of DUT and expected output
+         * Compares return codes and output of DUT and expected output - VERIFY part
          * @return Bool True if test passed otherwise false
          */
         public function compare($test, $resultCode, &$difference) {
@@ -284,12 +294,14 @@
                 $jexamOptsPath = addSlashToDir(Options::$jexamPath).Options::$jexamOpts;
 
                 $tmpXML = $test['folder'].$test['name'].'.'.Options::$tempXMLFileSuffix;
-
+                
+                //Comparing XML
                 exec("java -jar \"{$jexamJarPath}\" \"{$out}\" \"{$tmpXML}\" \"{$diffFile}\" /D \"{$jexamOptsPath}\"", result_code : $returnCode);
             }
             else {
                 $tmp = $test['folder'].$test['name'].'.'.Options::$tempFileSuffix;
-
+                
+                //Comparing regular file
                 exec("diff \"{$out}\" \"{$tmp}\" >\"{$diffFile}\"" , result_code : $returnCode);
             }
 
@@ -336,6 +348,8 @@
 
         /**
          * Executes tests in given directory
+         * @param String $dir target directory with tests
+         * @param Bool $recurise specifies, whether method should search nested files recursively
          */
         public function run($dir, $recursive) {
             $dir = addSlashToDir($dir);   
@@ -372,7 +386,7 @@
                     $ret = $this->test($test); //Testing DUT
                     $passed = $this->compare($test, $ret, $diff); //Comparing results
 
-                    if($passed) {
+                    if($passed) { //TEARDOWN
                         $this->success++;
 
                         HTML::printItemSuccess('', $this->total, $test, "<span class='success'><b>Pass!</b></span>");
@@ -383,7 +397,7 @@
 
                         $gotPath = $test['folder'].$test['name'].'.'.Options::$tempFileSuffix;
 
-                        if(Options::$parseOnly || !Options::$intOnly) {
+                        if(Options::$parseOnly) {
                             $gotPath = $test['folder'].$test['name'].'.'.Options::$tempXMLFileSuffix;
                         }
 
@@ -713,6 +727,9 @@
             DOC;
         }
 
+        /**
+         * Prints the header of item in the list with the tests
+         */
         public static function printItemHeader($num, $test) {
             $name = $test['name'];
             $folder = $test['folder'];
@@ -741,7 +758,6 @@
 
             DOC;
         }
-    
     
         public static function printItemSuccess($subClasses, $num, $test, $content) {
             echo <<<DOC

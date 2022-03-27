@@ -243,8 +243,8 @@ class Frame:
     it is wrapper for dictionary containing also some additional methods...
     """
 
-    def __init__(self, initVars = {}):
-        self.vars = initVars
+    def __init__(self):
+        self.vars = {}
 
     def __str__(self):
         string = "{"
@@ -404,8 +404,8 @@ class ProgramContext:
         frameMark = var.getFrameMark()
         frame = self.getFrame(frameMark)
 
-        if var in frame.getVars():
-            raise Error.RuntimeError(SEMANTIC_ERROR, "Redefinice proměnné "+name+" v rámci "+frameMark.name, self)
+        if name in frame.getVars():
+            raise Error.RuntimeError(SEMANTIC_ERROR, "Redefinice proměnné "+name+" v rámci "+frameMark.name+"!", self)
         else:
             frame.setVar(name, None)
 
@@ -476,7 +476,7 @@ class ProgramContext:
     def newTempFrame(self):
         """Creates new temporary frame and throw away the old one"""
 
-        self.frames[Variable.FrameM.TEMPORARY] = Frame({})
+        self.frames[Variable.FrameM.TEMPORARY] = Frame()
 
 
     def deleteTempFrame(self):

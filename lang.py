@@ -137,7 +137,7 @@ class Utils:
 
             result = lOp.getValue() == rOp.getValue()
         else:
-            if lOpType != rOpType:
+            if lOpType != rOpType or lOpType == t.NIL and rOpType == t.NIL:
                 raise Error.RuntimeError(BAD_TYPES, "Porovnávané hodnoty musí být stejného typu!", ctx)
             
             if func == 'LT':
@@ -453,7 +453,7 @@ class Op:
         inputValue = None 
         isNotNil = strInput.lower() != "nil" or type == Data.Type.STR
 
-        if Lang.isValidFormated(type, strInput) and isNotNil:
+        if Lang.isValidFormated(type, strInput)and isNotNil:
             inputValue = Lang.str2value(type, strInput)
         else:
             type = Data.Type.NIL
@@ -502,13 +502,16 @@ class Op:
         if string.getType() != Data.Type.STR:
             raise Error.RuntimeError(BAD_TYPES, "Neočekávaný datový typ operandu! Očekáván STR.", ctx)
 
-        ctx.setVar(dst, Data(Data.Type.STR, len(string.getValue())))
+        ctx.setVar(dst, Data(Data.Type.INT, len(string.getValue())))
 
 
     def getchar(ctx : ProgramContext, args : list):
         dst = args[0]
+        string = ctx.getData(args[1])
+        index = ctx.getData(args[2])
 
-        char = __class__.getCharAtIndex(ctx, args)
+        char = Utils.getCharAtIndex(ctx, string, index)
+
         ctx.setVar(dst, Data(Data.Type.STR, char))
 
 
@@ -527,15 +530,18 @@ class Op:
             raise Error.RuntimeError(BAD_TYPES, "Neplatné typy operandů!", ctx)
 
         indexInt = index.getValue()
+    
+        # Negative indexes like in python is supported
         if not src.getValue():
             raise Error.RuntimeError(INVALID_STRING_OP, "Operandem nemůže být prázdný řetězec!", ctx)
-        if indexInt >= len(dst.getValue()) or indexInt < len(dst.getValue()):
+        if indexInt >= len(dst.getValue()) or indexInt < -len(dst.getValue()):
             raise Error.RuntimeError(INVALID_STRING_OP, "Index mimo hranice pole!", ctx)
 
-        result = dst.getValue()
-        result[indexInt] = src.getValue()[0]
+        resultList = list(dst.getValue()) # Converting string to list to modify one character
+        resultList[indexInt] = src.getValue()[0]
+        result = "".join(resultList)
 
-        ctx.setVar(dst, Data(Data.Type.STR, result))
+        ctx.setVar(dstVar, Data(Data.Type.STR, result))
 
 
     def typeF(ctx : ProgramContext, args : list):
@@ -860,7 +866,7 @@ class Lang:
 
 
     @staticmethod
-    def isValidFormated(type, str : str) -> bool:
+    def isValidFormated(type, str : str, caseSensitive = False) -> bool:
         """Checks format of given string that represents operant of 
         given type (in most cases, this method will be unnecessary, because
         there is parse.php, that checks the same thing)
@@ -870,6 +876,7 @@ class Lang:
             str (str): input string to be checked
         """
 
+        str = str.lower() if caseSensitive else str
         if re.search(__class__.OPERAND_FORMAT[type], str):
             return True
         else:
@@ -905,16 +912,14 @@ class Lang:
             return chr(int(convertable)) # Returning unicode char corresponding to converted number sequence
 
         t = Data.Type
-        if (string == "nil" and type != t.STR) or type == t.NIL: # Everything can have nil value (and nil type can have only nil value)
+        if (string == "nil" and type != t.STR and type != t.BOOL) or type == t.NIL: # Everything can have nil value (and nil type can have only nil value)
             return None
 
         elif type == Data.Type.BOOL:
             if string == "true":
                 return True
-            elif string == "false":
-                return False
             else:
-                return None
+                return False
 
         elif type == Data.Type.STR:
             result = re.sub(r"\\\d{3}", replaceEscSequence, string)
