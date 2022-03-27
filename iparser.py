@@ -278,15 +278,17 @@ class IParser:
 
 
     @staticmethod
-    def createInstruction(opcode : str, order : int, operands):
+    def createInstruction(opcode : str, order : int, ops):
         """Factory for making instruction objects, chooses the right subclass"""
+        
+        uOpcode = opcode.upper()
 
         if Lang.isLabelInstrucion(opcode):
-            return Label(opcode, order, operands)
+            return Label(uOpcode, order, ops)
         elif Lang.isDebugInstruction(opcode):
-            return Debug(opcode, order, operands, Lang.getFunction(opcode))
+            return Debug(uOpcode, order, ops, Lang.getFunction(uOpcode))
         else:
-            return Executable(opcode, order, operands, Lang.getFunction(opcode))
+            return Executable(uOpcode, order, ops, Lang.getFunction(uOpcode))
 
 
     @staticmethod

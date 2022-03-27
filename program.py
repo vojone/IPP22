@@ -49,6 +49,8 @@ class Data:
             return True
         elif self.type == __class__.Type.STR and value.__class__ == str:
             return True
+        elif self.type == __class__.Type.FLOAT and value.__class__ == float:
+            return True
         else:
             return False
 

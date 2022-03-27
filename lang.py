@@ -34,11 +34,14 @@ class Utils:
         if lOp.getType() not in compTypes or rOp.getType() not in compTypes:
             raise Error.RuntimeError(BAD_TYPES, "Aritmetické instrukce vyžadují operandy typu FLOAT nebo INT!", ctx)
 
+        if lOp.getType() != rOp.getType():
+            raise Error.RuntimeError(BAD_TYPES, "Aritmetické instrukce vyžadují operandy stejného typu!", ctx)
+
         result = None
         if func == 'SUB':
             result = lOp.getValue() - rOp.getValue()
 
-        elif func == 'MULT':
+        elif func == 'MUL':
             result = lOp.getValue() * rOp.getValue()
 
         elif func == 'DIV':
@@ -123,22 +126,26 @@ class Utils:
             func (str): function specifier it can be EQ|GT|LT
         """
 
-        if lOp.getType() != rOp.getType():
-            raise Error.RuntimeError(BAD_TYPES, "Hodnoty musí být stejného typu (v případě rovnosti může být jeden operand typu NIL)!", ctx)
+        lOpType = lOp.getType()
+        rOpType = rOp.getType()
+        t = Data.Type
 
         result = None
         if func == 'EQ':
+            if lOpType != rOpType and lOpType != t.NIL and rOpType != t.NIL:
+                raise Error.RuntimeError(BAD_TYPES, "Porovnávané hodnoty musí být stejného typu (nebo jeden operand může být typu NIL)!", ctx)
+
             result = lOp.getValue() == rOp.getValue()
         else:
-            if lOp.getType() == Data.Type.NIL or rOp.getType() == Data.Type.NIL:
-                raise Error.RuntimeError(BAD_TYPES, "Hdonota typu NIL může být porovnávána tímto operátorem!", ctx)
+            if lOpType != rOpType:
+                raise Error.RuntimeError(BAD_TYPES, "Porovnávané hodnoty musí být stejného typu!", ctx)
             
             if func == 'LT':
                 result = lOp.getValue() < rOp.getValue()
             else:
                 result = lOp.getValue() > rOp.getValue()
 
-        return Data(Data.Type.BOOL, result)
+        return Data(t.BOOL, result)
 
 
     @staticmethod
@@ -236,7 +243,7 @@ class Utils:
             raise Error.RuntimeError(BAD_TYPES, "Neočekávaný datový typ operandu! Očekáván INT.", ctx)
 
         try:
-            char = chr(ordinal)
+            char = chr(ordinal.getValue())
         except ValueError:
             raise Error.RuntimeError(INVALID_STRING_OP, "Neplatná unicode hodnota! Nelze konvertovat!", ctx)
 
@@ -278,7 +285,7 @@ class Utils:
         lOpType = lOp.getType()
         rOpType = rOp.getType()
         t = Data.Type
-        if lOpType != rOpType or (lOpType == t.NIL and rOpType == t.NIL):
+        if lOpType != rOpType and lOpType != t.NIL and rOpType != t.NIL:
             raise Error.RuntimeError(BAD_TYPES, "Nekompatibilní datové typy operandů! (oba typy musí být stejné/jeden může být NIL)", ctx)
 
         if f == 'NEQ':
@@ -360,7 +367,7 @@ class Op:
 
 
     def mul(ctx : ProgramContext, args : list):
-        Utils.arithmetics3(ctx, args, 'MULT')
+        Utils.arithmetics3(ctx, args, 'MUL')
 
 
     def div(ctx : ProgramContext, args : list):
@@ -382,7 +389,7 @@ class Op:
 
     def int2float(ctx : ProgramContext, args : list):
         dst = args[0]
-        toBeConverted = args[1]
+        toBeConverted = ctx.getData(args[1])
 
         result = Utils.int2float(ctx, toBeConverted)
 
@@ -415,7 +422,7 @@ class Op:
 
     def int2char(ctx : ProgramContext, args : list):
         dst = args[0]
-        ordinalValue = args[1]
+        ordinalValue = ctx.getData(args[1])
 
         result = Utils.int2char(ctx, ordinalValue)
 
@@ -443,12 +450,11 @@ class Op:
 
         strInput = ctx.input.readline().strip()
         strInput = strInput.lower() if type == Data.Type.BOOL else strInput # If it is bool type it does not matter letter case
-
         inputValue = None 
         isNotNil = strInput.lower() != "nil" or type == Data.Type.STR
 
         if Lang.isValidFormated(type, strInput) and isNotNil:
-            inputValue = Lang.str2value(type, strInput) 
+            inputValue = Lang.str2value(type, strInput)
         else:
             type = Data.Type.NIL
 
@@ -466,6 +472,8 @@ class Op:
                 toPrint = "false"
         elif data.getType() == Data.Type.NIL:
             toPrint = ""
+        elif data.getType() == Data.Type.FLOAT:
+            toPrint = float.hex(toPrint)
 
         return toPrint
 
@@ -541,15 +549,18 @@ class Op:
             t.NIL : "nil", t.STR : "string", t.FLOAT : "float"
         }
 
-        result = None
+        typeStr = None
         if examinigElement.getType() == Operand.Type.VAR:
-            result = ctx.getVar(examinigElement, True)
-            result = "" if result == None else result
+            exData = ctx.getVar(examinigElement, True)
+            if exData == None:
+                typeStr = ""
+            else:
+                typeStr = str2DataType[exData.getType()]
         else:
             exData = ctx.getData(examinigElement)
-            result = str2DataType[exData.getType()]
+            typeStr = str2DataType[exData.getType()]
 
-        ctx.setVar(dst, Data(t.STR, result))
+        ctx.setVar(dst, Data(t.STR, typeStr))
 
 
     def jump(ctx : ProgramContext, args : list):
@@ -686,7 +697,7 @@ class Op:
 
         result = Utils.int2char(ctx, ordinalValue)
 
-        ctx.frameStack.push(result)
+        ctx.dataStack.push(result)
 
 
     def stri2ints(ctx : ProgramContext, args : list):
@@ -754,6 +765,7 @@ class Lang:
         "ADD"               : [Op.add, ["var", "symb", "symb"]],
         "SUB"               : [Op.sub, ["var", "symb", "symb"]],
         "MUL"               : [Op.mul, ["var", "symb", "symb"]],
+        "DIV"               : [Op.div, ["var", "symb", "symb"]],
         "IDIV"              : [Op.idiv, ["var", "symb", "symb"]],
         # Comparing
         "LT"                : [Op.lt, ["var", "symb", "symb"]],
@@ -777,7 +789,7 @@ class Lang:
         "GETCHAR"           : [Op.getchar, ["var", "symb", "symb"]],
         "SETCHAR"           : [Op.setchar, ["var", "symb", "symb"]],
         # Type operations
-        "TYPE"              : [Op.typeF, ["var", "type"]],
+        "TYPE"              : [Op.typeF, ["var", "symb"]],
         # Branching
         "LABEL"             : [Op.nop, ["label"]],
         "JUMP"              : [Op.jump, ["label"]],
@@ -804,7 +816,7 @@ class Lang:
         "ORS"               : [Op.ors, []],
         "NOTS"              : [Op.nots, []],
         "INT2CHARS"         : [Op.int2chars, []],
-        "STRIN2INTS"        : [Op.stri2ints, []],
+        "STRI2INTS"        : [Op.stri2ints, []],
         "JUMPIFEQS"         : [Op.jumpifeqs, ["label"]],
         "JUMPIFNEQS"        : [Op.jumpifneqs, ["label"]],
     }
@@ -833,15 +845,15 @@ class Lang:
     }
 
     OPERAND_FORMAT = {
-        Data.Type.NIL : "^nil$",
-        Data.Type.STR : "^(([^\u0000-\u0020\s\\\]|(\\\[0-9]{3}))*|nil)$",
-        Data.Type.INT : "^[-\+]?(([1-9]((_)?[0-9]+)*)|(0[oO]?[0-7]((_)?[0-7]+)*)|(0[xX][0-9A-Fa-f]((_)?[0-9A-Fa-f]+)*)|(0)|nil)$",
+        Data.Type.NIL : "^(nil)$",
+        Data.Type.STR : "^((.*)|(nil))$",
+        Data.Type.INT : "^(([-\+]?(([1-9]((_)?\d+)*)|(0[oO]?[0-7]((_)?[0-7]+)*)|(0[xX][\dA-Fa-f]((_)?[\dA-Fa-f]+)*)|(0)))|(nil))$",
         Data.Type.BOOL: "^(true|false|nil)$",
-        Data.Type.FLOAT: "^[-\+]?((\d+(.\d+)?(e[-\+]\d+?)?)|(0[xX][0-9a-zA-Z]+(.[0-9a-zA-Z]+)?(p[-\+][0-9a-zA-Z]+?)?))$",
+        Data.Type.FLOAT: "^(([-\+]?(((\d)*[\d\.](\d)*(e[-\+]?\d+)?)|((0[xX][\da-fA-F]*[\da-fA-F\.][\da-fA-F]*)(p[-\+]?[\da-fA-F]+)?)))|(nil))$",
 
-        Operand.Type.LABEL : "^[a-zA-Z_\-$&%\*!?][a-zA-Z_\-$&%\*!?0-9]*$",
-        Operand.Type.TYPE  : "^(bool|int|string|nil)$",
-        Operand.Type.VAR   : "^(GF|LF|TF)@[a-zA-Z_\-$&%\*!?][a-zA-Z_\-$&%\*!?0-9]*$"
+        Operand.Type.LABEL : "^([a-zA-Z_\-$&%\*!?][a-zA-Z_\-$&%\*!?0-9]*)$",
+        Operand.Type.TYPE  : "^(bool|int|string|float|nil)$",
+        Operand.Type.VAR   : "^((GF|LF|TF)@[a-zA-Z_\-$&%\*!?][a-zA-Z_\-$&%\*!?0-9]*)$"
     }
 
     VAR_DELIM_CHAR = '@'
@@ -861,7 +873,19 @@ class Lang:
         if re.search(__class__.OPERAND_FORMAT[type], str):
             return True
         else:
-            return False
+            if type == Data.Type.FLOAT:
+                # It is little bit tricky to catch all convertable values to float by regex
+                # So this is simple workaround
+
+                try:
+                    float.fromhex(str)
+                except:
+                    return False
+                else:
+                    return True
+
+            else:    
+                return False
 
 
     @staticmethod
@@ -902,20 +926,35 @@ class Lang:
             return int(withoutLeadingZeros, 0) 
         
         elif type == Data.Type.FLOAT:
-            if re.search('^0x', string):
+            if re.search('^[-\+]?0[xX]', string):
                 return float.fromhex(string)
             else:
-                return float(string)
+                # Sometimes it can be difficult to distiguish hexa representation of float and decimal representation
+                # That is the reason why this workaround was made (e. g. 1p0 not starts with 0x but is convertable)
+
+                result = None
+                try:
+                    result = float(string)
+                except:
+                    result = float.fromhex(string)
+
+                return result
 
 
     @staticmethod
-    def isInstruction(str : str) -> bool:
-        return str in __class__.INSTRUCTIONS
+    def isInstruction(str : str, caseSensitive = False) -> bool:
+        if caseSensitive:
+            return str in __class__.INSTRUCTIONS
+        else:
+            return str.upper() in __class__.INSTRUCTIONS
 
 
     @staticmethod
-    def isType(str : str) -> bool:
-        return str in __class__.OPERAND_TYPES
+    def isType(str : str, caseSensitive = True) -> bool:
+        if caseSensitive:
+            return str in __class__.OPERAND_TYPES
+        else:
+            return str.upper() in __class__.OPERAND_TYPES
 
 
     @staticmethod
@@ -924,8 +963,11 @@ class Lang:
 
 
     @staticmethod
-    def isFrame(str : str) -> bool:
-        return str in __class__.FRAMES
+    def isFrame(str : str, caseSensitive = True) -> bool:
+        if caseSensitive:
+            return str in __class__.FRAMES
+        else:
+            return str.upper() in __class__.FRAMES
 
 
     @staticmethod
@@ -975,10 +1017,13 @@ class Lang:
 
 
     @staticmethod
-    def isNewVarInstruction(opcode : str) -> bool:
+    def isNewVarInstruction(opcode : str, caseSensitive = False) -> bool:
         """Checks whether the instructions declares new variable (for semantic checks)"""
 
-        return opcode in __class__.NEW_VAR_INSTRUCTIONS
+        if caseSensitive:
+            return opcode in __class__.NEW_VAR_INSTRUCTIONS
+        else:
+            return opcode.upper() in __class__.NEW_VAR_INSTRUCTIONS
 
 
     @staticmethod
@@ -991,26 +1036,35 @@ class Lang:
 
 
     @staticmethod
-    def isLabelInstrucion(opcode : str) -> bool:
+    def isLabelInstrucion(opcode : str, caseSensitive = False) -> bool:
         """Checks whether instruction defines new label (for semantic checks)"""
 
-        return opcode in __class__.LABEL_INSTRUCTIONS
+        if caseSensitive:
+            return opcode in __class__.LABEL_INSTRUCTIONS
+        else:
+            return opcode.upper() in __class__.LABEL_INSTRUCTIONS
 
 
     @staticmethod
-    def isJumpInstruction(opcode : str) -> bool:
+    def isJumpInstruction(opcode : str, caseSensitive = False) -> bool:
         """Checks whether instruction perform jump (usefull for semantic checks
         and factory methods)
         """
 
-        return opcode in __class__.JUMP_INSTRUCTIONS
+        if caseSensitive:
+            return opcode in __class__.JUMP_INSTRUCTIONS
+        else:
+            return opcode.upper() in __class__.JUMP_INSTRUCTIONS
 
     
     @staticmethod
-    def isDebugInstruction(opcode : str) -> bool:
+    def isDebugInstruction(opcode : str, caseSensitive = False) -> bool:
         """Checks whether instruction is debug instruction"""
 
-        return opcode in __class__.DEBUG_INSTRUCTIONS
+        if caseSensitive:
+            return opcode in __class__.DEBUG_INSTRUCTIONS
+        else:
+            return opcode.upper() in __class__.DEBUG_INSTRUCTIONS
 
 
     @staticmethod
