@@ -6,6 +6,7 @@ input code, for storing execution context and finally also for exectuion itself
 """
 
 from enum import Enum, auto
+from fileinput import close
 from errors import *
 
 import sys
@@ -68,7 +69,7 @@ class Data:
         if self.isValCompatible(newValue):
             self.value = newValue
         else:
-            raise Error.InternalError(INTERNAL_ERROR, "Unable to assign value of type "+newValue.__class__.__name__+" to data of type "+self.type.name+"!")
+            raise Error.InternalError(INTERNAL_ERROR, "Nelze přiřadit hodnotu typu "+newValue.__class__.__name__+" datovému objektu s typem "+self.type.name+"!")
 
 
 class Operand:
@@ -136,13 +137,13 @@ class Variable(Operand):
     frame property and (variable) name property
     """
 
-    class Frame(Enum):
+    class FrameM(Enum):
         GLOBAL = auto()
         LOCAL = auto()
         TEMPORARY = auto()
 
 
-    def __init__(self, num : int, content : str, frame : Frame, name : str):
+    def __init__(self, num : int, content : str, frame : FrameM, name : str):
         super().__init__(num, super().Type.VAR, content)
         self.frame = frame
         self.name = name
@@ -295,20 +296,20 @@ class ProgramContext:
         self.returnCode = None
         self.totalICounter = 0
 
-        self.frames = {
-            Variable.Frame.GLOBAL : Frame(),
-            Variable.Frame.LOCAL : None,
-            Variable.Frame.TEMPORARY : None,
+        self.frames = { # Initial states of frames
+            Variable.FrameM.GLOBAL : Frame(),
+            Variable.FrameM.LOCAL : None,
+            Variable.FrameM.TEMPORARY : None,
         }
 
         self.frameStack = Stack()
-        self.frameStack.setErr("Empty FRAME stack! Unable to access top/pop it!", FRAME_NOT_EXISTS)
+        self.frameStack.setErr("Prázdný zásobník rámců!", FRAME_NOT_EXISTS)
         
         self.callStack = Stack()
-        self.callStack.setErr("Empty CALL stack! Unable to access top/pop it!", MISSING_VALUE)
+        self.callStack.setErr("Prázdný zásobník volání!", MISSING_VALUE)
         
         self.dataStack = Stack()
-        self.dataStack.setErr("Empty DATA stack! Unable to access top/pop it!", MISSING_VALUE)
+        self.dataStack.setErr("Prázdný datový zásobník!", MISSING_VALUE)
 
         self.labelMap = {}
 
@@ -371,7 +372,7 @@ class ProgramContext:
         """
 
         if name in self.labelMap:
-            raise Error.SemanticError(SEMANTIC_ERROR, "Redefinition of label "+name+"!")
+            raise Error.SemanticError(SEMANTIC_ERROR, "Redefinice návěští "+name+"!")
         else:
             self.labelMap[name] = targetIndex
 
@@ -380,16 +381,16 @@ class ProgramContext:
         """Returns target index of given label"""
 
         if not name in self.labelMap:
-            raise Error.SemanticError(SEMANTIC_ERROR, "Undefined label "+name+"!")
+            raise Error.SemanticError(SEMANTIC_ERROR, "Nedefinované návěští "+name+"!")
         else:
             return self.labelMap[name]
 
 
-    def getFrame(self, frameMark : Variable.Frame) -> dict:
+    def getFrame(self, frameMark : Variable.FrameM) -> dict:
         """Returns specific frame from dictionary with frames"""
 
         if not frameMark in self.frames or self.frames[frameMark] == None:
-            raise Error.RuntimeError(FRAME_NOT_EXISTS, "Frame '"+frameMark.name+"' does not exists!", self)
+            raise Error.RuntimeError(FRAME_NOT_EXISTS, "Rámec '"+frameMark.name+"' neexistuje!", self)
         else:
             return self.frames[frameMark]
 
@@ -402,16 +403,16 @@ class ProgramContext:
         frame = self.getFrame(frameMark)
 
         if var in frame.getVars():
-            raise Error.RuntimeError(SEMANTIC_ERROR, "Redefinition of variable "+name+" in frame "+frameMark.name, self)
+            raise Error.RuntimeError(SEMANTIC_ERROR, "Redefinice proměnné "+name+" v rámci "+frameMark.name, self)
         else:
-            frame.setVar(name)
+            frame.setVar(name, None)
 
 
     def checkVar(self, var : Variable, canBeUninit = False):
         """Checks if given variable exists in program context.
         
         Args:
-            var (Variable): variable to be cheked
+            var (Variable): variable to be checked
             canBeUninit (bool): if it is False, it raises error when variable
                 is not initialized
 
@@ -424,9 +425,9 @@ class ProgramContext:
         frame = self.getFrame(frameMark)
 
         if not name in frame.getVars():
-            raise Error.RuntimeError(VAR_NOT_EXISTS, "Variable '"+name+"' does not exists in frame "+frameMark.name+"!", self)
+            raise Error.RuntimeError(VAR_NOT_EXISTS, "Proměnná '"+name+"' neexistuje v rámci "+frameMark.name+"!", self)
         elif frame.getVar(name) == None and not canBeUninit:
-            raise Error.RuntimeError(MISSING_VALUE, "Missing value of '"+name+"' in frame "+frameMark.name+"!", self)
+            raise Error.RuntimeError(MISSING_VALUE, "Neinicializovaná proměnná '"+name+"' v rámci "+frameMark.name+"!", self)
         else:
             return frame, name
 
@@ -465,21 +466,21 @@ class ProgramContext:
         if operand.getType() == Operand.Type.LITERAL:
             return operand.getData()
         elif operand.getType() == Operand.Type.VAR:
-            return self.getVar(operand)
+            return self.getVar(operand, False)
         else:
-            raise Error.InternalError(INTERNAL_ERROR, "Unable to get data of operand of type "+operand.getType().name+"!")
+            raise Error.InternalError(INTERNAL_ERROR, "Nelze získat data z operandu "+operand.getType().name+"!")
 
     
     def newTempFrame(self):
         """Creates new temporary frame and throw away the old one"""
 
-        self.frames[Variable.Frame.TEMPORARY] = Frame()
+        self.frames[Variable.FrameM.TEMPORARY] = Frame({})
 
 
-    def clearTempFrame(self):
+    def deleteTempFrame(self):
         """Clears temporary frame to initial state"""
 
-        self.frames[Variable.Frame.TEMPORARY] = None
+        self.frames[Variable.FrameM.TEMPORARY] = None
 
 
     def updateLocalFrame(self):
@@ -487,13 +488,117 @@ class ProgramContext:
         the frameStack is updated
         """
 
-        self.frames[Variable.Frame.LOCAL] = self.frameStack.getTop(eTol=True)  
+        self.frames[Variable.FrameM.LOCAL] = self.frameStack.getTop(eTol=True)  
+
+
+
+class StatsCollector:
+    """Its instances are reponsible for collecting stats about interpretation"""
+
+    SKEY = "stats" # Key that is used in dictionary with configuration
+
+
+    def __init__(self, config):
+        """Initializes statistics information and saves the stats config"""
+
+        self.sconfig = None
+
+        if __class__.SKEY in config:
+            self.sconfig = config[__class__.SKEY]
+
+        self.insts = 0
+        self.hotInstruction = None
+        self.vars = 0
+
+        self.hotMap = {}
+
+
+    def updateInsts(self, ctx : ProgramContext):
+        """Updates executed instruction counter"""
+
+        self.insts = ctx.getTotalICounter()
+
+
+    def updateHot(self, ctx : ProgramContext):
+        """Updates the hottest instruction"""
+
+        curInstr = ctx.getInstruction()
+        if curInstr in self.hotMap:
+            self.hotMap[curInstr] += 1
+        else: 
+            self.hotMap[curInstr] = 1
+
+        if self.hotInstruction == None:
+            self.hotInstruction = curInstr
+        else:
+            hot = self.hotInstruction
+
+            hotN = self.hotMap[hot]
+            curN = self.hotMap[curInstr]
+
+            hotO = hot.getOrder()
+            curO = curInstr.getOrder()
+
+            if (curN > hotN) or (curN == hotN and curO < hotO):
+                self.hotInstruction = curInstr
+    
+
+    def updateVars(self, ctx : ProgramContext):
+        """Updates maximum declared variables number"""
+        
+        curVars = 0
+        for frame in ctx.frames:
+            if ctx.frames[frame]:
+                curVars += len(ctx.frames[frame].getVars())
+        
+        if curVars > self.vars:
+            self.vars = curVars
+        
+
+    def updateAll(self, ctx : ProgramContext):
+        """Updates statistics information (if there was option --stats)"""
+
+        if self.sconfig != None:
+            self.updateHot(ctx)
+            self.updateVars(ctx)
+            self.updateInsts(ctx)
+
+    
+    def report(self):
+        """Prints statistics into corresponding files (given in config)"""
+
+        for file in self.sconfig:
+            try:
+                fStream = open(file, "w")
+            except:
+                raise Error.FileError(OUPUT_FILE_ERROR, "Nelze vytvořit/zapsat statistiky do souboru '"+file+"'!")
+
+            for stat in self.sconfig[file]:
+                data = None
+
+                if stat == "insts":
+                    data = self.insts
+                elif stat == "hot":
+                    data = self.hotInstruction.getOrder()
+                elif stat == "vars":
+                    data = self.vars
+                else:
+                    raise Error.InternalError(INTERNAL_ERROR, "Nepodporovaný typ statistiky '"+stat+"'!")
+                
+                print(data, file=fStream, end="\n")
+
+            fStream.close()
 
 
 
 class Instruction:
-    """Inner representation of instruction. Contains opcode (str), 
-    order number (int), operands (array with Operand objects)
+    """Inner representation of instruction. Used design pattern
+    COMMAND to design this class. Instruction objects ar firstly created
+    (corresponding method of executor is assigned to it) and then they are
+    executed one by one.
+
+    Contains opcode (str), order number (int), operands 
+    (array with Operand objects)
     """
 
     def __init__(self, opcode : str, order : int, operands):
@@ -528,19 +633,30 @@ class Executable(Instruction):
         self.action = action
 
 
-    def do(self, ctx : ProgramContext):
+    def do(self, ctx : ProgramContext, statCol : StatsCollector):
         """Executes the implementation of instruction"""
 
         self.action(ctx, self.operands)
+        ctx.incTotalICounter()
 
+        statCol.updateAll(ctx)
+
+
+class Debug(Executable):
+    """Subclass of executable class for debug instructions (they do not update
+    the instruction counter and statistics)
+    """
+
+    def do(self, ctx : ProgramContext, statCol : StatsCollector):
+        self.action(ctx, self.operands)
 
 
 class Label(Instruction):
     """Subclass of instruction class for labels"""
 
-    def do(self, ctx : ProgramContext):
+    def do(self, ctx : ProgramContext, statCol : StatsCollector):
         pass
-
+    
 
 
 class Program:
@@ -549,10 +665,12 @@ class Program:
     manipulate with these properties.
     """
 
-    def __init__(self, input = sys.stdin, instructions = []):
+    def __init__(self, config : dict, instructions = []):
         """If the new program is created, the new program context is created"""
 
-        self.ctx = ProgramContext(input)
+        self.ctx = ProgramContext(config["inputOpened"])
+
+        self.statCol = StatsCollector(config)
 
         self.instructions = []
         for i in instructions:
@@ -592,6 +710,10 @@ class Program:
 
     def getInstructions(self):
         return self.instructions
+
+    
+    def getStatCollector(self):
+        return self.statCol
 
 
     def start(self):
@@ -650,9 +772,7 @@ class Program:
             current = self.instructions[self.ctx.getNextInstructionIndex()]
 
             self.ctx.setInstruction(current)
-            current.do(self.ctx)
-
-            self.ctx.incTotalICounter()
+            current.do(self.ctx, self.statCol)
 
             if self.hasEnded(): # Check if instruction terminated program
                 break

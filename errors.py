@@ -32,7 +32,7 @@ class Error:
 
     @staticmethod
     def printGeneral(e : Exception):
-        """Prints information about genral exception, that was raised
+        """Prints information about general exception, that was raised
 
             Args:
                 e (Exception): exception object containg information about exc.
@@ -41,7 +41,7 @@ class Error:
         __class__.print("Unexpected exception: "+str(e))
         
         if e.__traceback__.tb_next: 
-            print("\t("+str(e.__traceback__.tb_next.tb_frame.f_code.co_filename)+", line "+str(e.__traceback__.tb_next.tb_lineno)+")")
+            print("\t("+str(e.__traceback__.tb_next.tb_frame.f_code.co_filename)+", line "+str(e.__traceback__.tb_next.tb_lineno)+")", file=sys.stderr)
 
     @staticmethod
     def print(msg: str):
@@ -82,6 +82,14 @@ class Error:
         def exit(self):
             sys.exit(self.code)
 
+    class FileError(MException):
+        """MException subclass used for handling errors caused by binvalid
+        oprations with files
+        """
+
+        def __init__(self, code: int, msg: str = None):
+            super().__init__(code, msg)
+            self.prefix = "Chyba vstup/výstupního souboru:"
 
     class ARGError(MException):
         """MException subclass used for handling errors caused by bad call 

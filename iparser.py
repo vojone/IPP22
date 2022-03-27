@@ -10,7 +10,7 @@ import xml.parsers.expat as expat
 import re
 
 from errors import *
-from program import Data, Executable, Instruction, Label, Literal, Operand, Type
+from program import Data, Debug, Executable, Instruction, Label, Literal, Operand, Type
 from program import Program, ProgramContext, Variable
 from lang import Lang
 
@@ -50,7 +50,7 @@ class SAnalayzer:
         elif Lang.isJumpInstruction(opcode):
             self.jumpTargets[leadingOp.getContent()] = order
         elif Lang.isNewVarInstruction(opcode):
-            if leadingOp.getFrameMark() == Variable.Frame.GLOBAL:
+            if leadingOp.getFrameMark() == Variable.FrameM.GLOBAL:
                 self.fakeCtx.addVar(leadingOp)
 
 
@@ -196,12 +196,12 @@ class IParser:
 
 
     @staticmethod
-    def safeGetOrder(instruction : xml.Node) -> int:
-        """Gets attribute number of given XML element with winstruction
+    def safeGetOrder(instr : xml.Node) -> int:
+        """Gets attribute number of given XML element with instruction
         or it raises exception
         """
 
-        order = __class__.safeGetAttribute(__class__.ORDER_ATTR, instruction)
+        order = __class__.safeGetAttribute(__class__.ORDER_ATTR, instr, False)
 
         if not order.isdigit() or int(order) == 0:
             raise Error.XMLError(BAD_XML, "Order atribut musí být celé kladné číslo! Nalezeno: "+order+"!")
@@ -211,6 +211,8 @@ class IParser:
 
     @staticmethod
     def createOperand(number : int, content : str, type):
+        """Operand object factory, chooses the right subclass of Operand"""
+
         if type in Data.Type:
             value = Lang.str2value(type, content) # Getting corresponding value
             return Literal(number, content, type, value)
@@ -229,7 +231,11 @@ class IParser:
 
     @staticmethod
     def checkNumberingOfOperands(opcode : str, order : int, operands : list):
-         for index, op in enumerate(operands):
+        """Check numbering of arguments in sorted list (the it should be 
+        increasing sequence without gaps), if there is mistake it raises exc.
+        """
+
+        for index, op in enumerate(operands):
             if index + 1 != op.getNumber():
                 raise Error.XMLError(BAD_XML, "Špatné číslování argumentů instrukce "+opcode+" (o. "+str(order)+")!")
 
@@ -254,7 +260,7 @@ class IParser:
             tagName = op.tagName
             opNumber = int(re.sub(__class__.ARG_TAG_RE, r"\1", tagName))
 
-            xmlType = __class__.safeGetAttribute(__class__.TYPE_ATTR, op)
+            xmlType = __class__.safeGetAttribute(__class__.TYPE_ATTR, op, False)
             if not Lang.isType(xmlType):
                 raise Error.XMLError(BAD_XML, "Neznámý typ operandu '"+xmlType+"' instrukce "+opcode+" (o.: "+str(order)+")!")
 
@@ -273,8 +279,12 @@ class IParser:
 
     @staticmethod
     def createInstruction(opcode : str, order : int, operands):
+        """Factory for making instruction objects, chooses the right subclass"""
+
         if Lang.isLabelInstrucion(opcode):
             return Label(opcode, order, operands)
+        elif Lang.isDebugInstruction(opcode):
+            return Debug(opcode, order, operands, Lang.getFunction(opcode))
         else:
             return Executable(opcode, order, operands, Lang.getFunction(opcode))
 
@@ -296,7 +306,7 @@ class IParser:
         lastOrder = None
         converted = []
         for i in instructionSeq:
-            opcode = __class__.safeGetAttribute(__class__.OPCODE_ATTR, i)
+            opcode = __class__.safeGetAttribute(__class__.OPCODE_ATTR, i, False)
             order = __class__.safeGetOrder(i)
 
             if lastOrder == order:
@@ -346,7 +356,7 @@ class IParser:
             (Program): program object with contaning given instructions
         """
 
-        return Program(self.config["inputOpened"], instructions)
+        return Program(self.config, instructions)
 
 
     def parse(self):

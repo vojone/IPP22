@@ -32,7 +32,7 @@ class Utils:
         t = Data.Type
         compTypes = [t.INT, t.FLOAT]
         if lOp.getType() not in compTypes or rOp.getType() not in compTypes:
-            raise Error.RuntimeError(BAD_TYPES, "Arithmetic instruction can operate only with INTEGERS or FLOATS!", ctx)
+            raise Error.RuntimeError(BAD_TYPES, "Aritmetické instrukce vyžadují operandy typu FLOAT nebo INT!", ctx)
 
         result = None
         if func == 'SUB':
@@ -43,16 +43,16 @@ class Utils:
 
         elif func == 'DIV':
             if rOp.getValue() == 0.0:
-                raise Error.RuntimeError(BAD_VALUE, "Division by ZERO!", ctx)
+                raise Error.RuntimeError(BAD_VALUE, "Dělení nulou!", ctx)
             elif rOp.getType() != t.FLOAT or lOp.getType() != t.FLOAT:
-                raise Error.RuntimeError(BAD_TYPES, "DIV can operate only with FLOAT operands (both)!", ctx)
+                raise Error.RuntimeError(BAD_TYPES, "Instrukce DIV vyžaduje oba operandy typu FLOAT!", ctx)
             result = lOp.getValue() / rOp.getValue()
 
         elif func == 'IDIV':
             if rOp.getValue() == 0:
                 raise Error.RuntimeError(BAD_VALUE, "Integer division by ZERO!", ctx)
             elif rOp.getType() != t.INT or lOp.getType() != t.INT:
-                raise Error.RuntimeError(BAD_TYPES, "IDIV can operate only with INT operands (both)!", ctx)
+                raise Error.RuntimeError(BAD_TYPES, "Instrukce DIV vyžaduje oba operandy typu INT!", ctx)
 
             result = lOp.getValue() // rOp.getValue()
 
@@ -96,7 +96,7 @@ class Utils:
         """Converts float data to int and returns data object with the result"""
 
         if toBeConverted.getType() != Data.Type.FLOAT:
-            raise Error.RuntimeError(BAD_TYPES, "Expected FLOAT value as a second operand!", ctx)
+            raise Error.RuntimeError(BAD_TYPES, "Neočekávaný typ parametru! Očekáván FLOAT.", ctx)
 
         return Data(Data.Type.INT, int(toBeConverted.getValue()))
 
@@ -106,7 +106,7 @@ class Utils:
         """Converts int data to float and returns data object with the result"""
 
         if toBeConverted.getType() != Data.Type.INT:
-            raise Error.RuntimeError(BAD_TYPES, "Expected INT value as a second operand!", ctx)
+            raise Error.RuntimeError(BAD_TYPES, "Neočekávaný typ parametru! Očekáván INT.", ctx)
 
         return Data(Data.Type.FLOAT, float(toBeConverted.getValue()))
 
@@ -124,14 +124,14 @@ class Utils:
         """
 
         if lOp.getType() != rOp.getType():
-            raise Error.RuntimeError(BAD_TYPES, "Compared values must have same type (or with equality, there can be NIL type)!", ctx)
+            raise Error.RuntimeError(BAD_TYPES, "Hodnoty musí být stejného typu (v případě rovnosti může být jeden operand typu NIL)!", ctx)
 
         result = None
         if func == 'EQ':
             result = lOp.getValue() == rOp.getValue()
         else:
             if lOp.getType() == Data.Type.NIL or rOp.getType() == Data.Type.NIL:
-                raise Error.RuntimeError(BAD_TYPES, "NIL can be compared only with equality!", ctx)
+                raise Error.RuntimeError(BAD_TYPES, "Hdonota typu NIL může být porovnávána tímto operátorem!", ctx)
             
             if func == 'LT':
                 result = lOp.getValue() < rOp.getValue()
@@ -179,12 +179,12 @@ class Utils:
         """
         
         if lOp.getType() != Data.Type.BOOL:
-            raise Error.RuntimeError(BAD_TYPES, "Logical functions can operate only with BOOL values!", ctx)
+            raise Error.RuntimeError(BAD_TYPES, "Logické operace mohout operovat pouze s operandy typu BOOL!", ctx)
 
         result = None
         if func in ['AND', 'OR']:
             if rOp.getType() != Data.Type.BOOL:
-                raise Error.RuntimeError(BAD_TYPES, "Both operands of logical functions must have BOOL values!", ctx)
+                raise Error.RuntimeError(BAD_TYPES, "Logické operace mohout operovat pouze s operandy typu BOOL!", ctx)
             
             if func == 'AND':
                 result = lOp.getValue() and rOp.getValue()
@@ -233,12 +233,12 @@ class Utils:
         """
 
         if ordinal.getType() != Data.Type.INT:
-            raise Error.RuntimeError(BAD_TYPES, "Bad data types of operands of instruction INT2CHAR (expected INTEGER)!", ctx)
+            raise Error.RuntimeError(BAD_TYPES, "Neočekávaný datový typ operandu! Očekáván INT.", ctx)
 
         try:
             char = chr(ordinal)
         except ValueError:
-            raise Error.RuntimeError(INVALID_STRING_OP, "Invalid unicode ordinal value! Cannot be converted!", ctx)
+            raise Error.RuntimeError(INVALID_STRING_OP, "Neplatná unicode hodnota! Nelze konvertovat!", ctx)
 
         return Data(Data.Type.STR, char)
 
@@ -250,14 +250,14 @@ class Utils:
 
         t = Data.Type
         if string.getType() != t.STR or index.getType() != t.INT:
-            raise Error.RuntimeError(BAD_TYPES, "Bad data types of operands of instruction STRI2INIT!", ctx)
+            raise Error.RuntimeError(BAD_TYPES, "Neočekávaný datový typ operandů! Očekáván STR a INT.", ctx)
 
         indexInt = index.getValue()
         stringLen = len(string.getValue())
 
         # It is possible to index string from back (by negative numbers)
         if indexInt >= stringLen or indexInt < -stringLen:
-            raise Error.RuntimeError(INVALID_STRING_OP, "Index outside string!", ctx)
+            raise Error.RuntimeError(INVALID_STRING_OP, "Index mimo hranice řetězce!", ctx)
 
         return string.getValue()[indexInt]
 
@@ -279,7 +279,7 @@ class Utils:
         rOpType = rOp.getType()
         t = Data.Type
         if lOpType != rOpType or (lOpType == t.NIL and rOpType == t.NIL):
-            raise Error.RuntimeError(BAD_TYPES, "Incompatible types of conditional jump (expected same types or one NIL type)", ctx)
+            raise Error.RuntimeError(BAD_TYPES, "Nekompatibilní datové typy operandů! (oba typy musí být stejné/jeden může být NIL)", ctx)
 
         if f == 'NEQ':
             return lOp.getValue() != rOp.getValue()
@@ -306,14 +306,14 @@ class Op:
 
 
     def pushFrame(ctx : ProgramContext, args : list):
-        TFToBePushed = ctx.getFrame(Variable.Frame.TEMPORARY)
+        TFToBePushed = ctx.getFrame(Variable.FrameM.TEMPORARY)
         ctx.frameStack.push(TFToBePushed)
         ctx.updateLocalFrame() # Stack with frames is changing -> need to update LF
-        ctx.clearTempFrame() # Making TF undefined
+        ctx.deleteTempFrame() # Making TF undefined
 
 
     def popFrame(ctx : ProgramContext, args : list):
-        ctx.frames[Variable.Frame.TEMPORARY] = ctx.frameStack.pop()
+        ctx.frames[Variable.FrameM.TEMPORARY] = ctx.frameStack.pop()
         ctx.updateLocalFrame() # Stack with frames is changing -> need to update LF
 
 
@@ -439,7 +439,7 @@ class Op:
 
         t = Data.Type
         if type not in [t.INT, t.STR, t.BOOL, t.FLOAT]:
-            raise Error.RuntimeError(BAD_VALUE, "Type argument must be int|str|bool|float!", ctx)
+            raise Error.RuntimeError(BAD_VALUE, "Argument specifikující typ musí být int|str|bool|float!", ctx)
 
         strInput = ctx.input.readline().strip()
         strInput = strInput.lower() if type == Data.Type.BOOL else strInput # If it is bool type it does not matter letter case
@@ -482,7 +482,7 @@ class Op:
 
         t = Data.Type
         if lPart.getType() != t.STR or rPart.getType() != t.STR:
-            raise Error.RuntimeError(BAD_TYPES, "Expected STR values as operands of CONCAT!", ctx)
+            raise Error.RuntimeError(BAD_TYPES, "Neočekávaný datový typ operandů! Očekáván STR u ubou operandů.", ctx)
 
         ctx.setVar(dst, Data(t.STR, lPart.getValue() + rPart.getValue()))
 
@@ -492,7 +492,7 @@ class Op:
         string = ctx.getData(args[1])
 
         if string.getType() != Data.Type.STR:
-            raise Error.RuntimeError(BAD_TYPES, "Expected STR value as operand of STRLEN!", ctx)
+            raise Error.RuntimeError(BAD_TYPES, "Neočekávaný datový typ operandu! Očekáván STR.", ctx)
 
         ctx.setVar(dst, Data(Data.Type.STR, len(string.getValue())))
 
@@ -516,13 +516,13 @@ class Op:
         srcType = src.getType()
         indexType = index.getType()
         if dstType != t.STR or srcType != t.STR or indexType != t.INT:
-            raise Error.RuntimeError(BAD_TYPES, "Invalid data types of operands of SETCHAR instruction!", ctx)
+            raise Error.RuntimeError(BAD_TYPES, "Neplatné typy operandů!", ctx)
 
         indexInt = index.getValue()
         if not src.getValue():
-            raise Error.RuntimeError(INVALID_STRING_OP, "Last operand of SETCHAR cannot be empty string!", ctx)
+            raise Error.RuntimeError(INVALID_STRING_OP, "Operandem nemůže být prázdný řetězec!", ctx)
         if indexInt >= len(dst.getValue()) or indexInt < len(dst.getValue()):
-            raise Error.RuntimeError(INVALID_STRING_OP, "Index outside string!", ctx)
+            raise Error.RuntimeError(INVALID_STRING_OP, "Index mimo hranice pole!", ctx)
 
         result = dst.getValue()
         result[indexInt] = src.getValue()[0]
@@ -578,12 +578,12 @@ class Op:
         exitCode = ctx.getData(args[0])
 
         if exitCode.getType() != Data.Type.INT:
-            raise Error.RuntimeError(BAD_TYPES, "Expected INT value as return code!", ctx)
+            raise Error.RuntimeError(BAD_TYPES, "Očekávána hodnota typu INT!", ctx)
         
         min = 0
         max = 49
         if exitCode.getValue() < min or exitCode.getValue() > max:
-            raise Error.RuntimeError(BAD_VALUE, "Exit code must be integer between "+str(min)+" and "+str(max)+" (included)!", ctx)
+            raise Error.RuntimeError(BAD_VALUE, "Návratový kód musí být celé číslo mezi "+str(min)+" a "+str(max)+" (včetně)!", ctx)
 
         ctx.setReturnCode(exitCode.getValue())
         ctx.setNextInstructionIndex(None)
@@ -597,13 +597,15 @@ class Op:
     def breakF(ctx : ProgramContext, args : list):
         total = ctx.getTotalICounter()
         order = ctx.getInstruction()
+        function = ctx.getCurrentFunction()
 
-        lf = ctx.frames[Variable.Frame.LOCAL]
-        gf = ctx.frames[Variable.Frame.GLOBAL]
-        tf = ctx.frames[Variable.Frame.TEMPORARY]
+        lf = ctx.frames[Variable.FrameM.LOCAL]
+        gf = ctx.frames[Variable.FrameM.GLOBAL]
+        tf = ctx.frames[Variable.FrameM.TEMPORARY]
 
-        print("-------------", file=sys.stderr)
-        print("Break at: "+str(order)+" (executed i.: "+str(total)+")", end='\n\n', file=sys.stderr)
+        print("________________________", file=sys.stderr)
+        print("BREAK at: "+str(order)+" (executed i.: "+str(total)+")", file=sys.stderr)
+        print("Function: "+(function if function != None else "-"), end='\n\n', file=sys.stderr)
         print("Variable frames: ", file=sys.stderr)
         print("GF: "+str(gf), file=sys.stderr)
         print("LF: "+str(lf if lf != None else "Undef."), file=sys.stderr)
@@ -611,7 +613,7 @@ class Op:
         print("Call st.: "+str(ctx.callStack), end='\n\n', file=sys.stderr)
         print("Data stack: "+str(ctx.dataStack), end='\n\n', file=sys.stderr)
         print("Frame stack: "+str(ctx.frameStack), end='\n\n', file=sys.stderr)
-        print("-------------", file=sys.stderr)
+        print("________________________", file=sys.stderr)
 
     #------------------------------ STACK INSTRUCTIONS ------------------------
     
@@ -803,11 +805,12 @@ class Lang:
         "NOTS"              : [Op.nots, []],
         "INT2CHARS"         : [Op.int2chars, []],
         "STRIN2INTS"        : [Op.stri2ints, []],
-        "JUMPIFEQS"         : [Op.jumpifeqs, []],
-        "JUMPIFNEQS"        : [Op.jumpifneqs, []],
+        "JUMPIFEQS"         : [Op.jumpifeqs, ["label"]],
+        "JUMPIFNEQS"        : [Op.jumpifneqs, ["label"]],
     }
 
     LABEL_INSTRUCTIONS = ["LABEL"]
+    DEBUG_INSTRUCTIONS = ["DPRINT", "BREAK"]
     JUMP_INSTRUCTIONS = ["JUMP", "JUMPIFEQ", "JUMPIFNEQ", "CALL"]
     NEW_VAR_INSTRUCTIONS = ["DEFVAR"]
 
@@ -824,9 +827,9 @@ class Lang:
     }
 
     FRAMES = {
-        "GF" : Variable.Frame.GLOBAL,
-        "LF" : Variable.Frame.LOCAL,
-        "TF" : Variable.Frame.TEMPORARY
+        "GF" : Variable.FrameM.GLOBAL,
+        "LF" : Variable.FrameM.LOCAL,
+        "TF" : Variable.FrameM.TEMPORARY
     }
 
     OPERAND_FORMAT = {
@@ -996,9 +999,18 @@ class Lang:
 
     @staticmethod
     def isJumpInstruction(opcode : str) -> bool:
-        """Checks whether instruction perform jump (usefull for semantic checks)"""
+        """Checks whether instruction perform jump (usefull for semantic checks
+        and factory methods)
+        """
 
         return opcode in __class__.JUMP_INSTRUCTIONS
+
+    
+    @staticmethod
+    def isDebugInstruction(opcode : str) -> bool:
+        """Checks whether instruction is debug instruction"""
+
+        return opcode in __class__.DEBUG_INSTRUCTIONS
 
 
     @staticmethod
