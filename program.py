@@ -501,7 +501,7 @@ class StatsCollector:
     def __init__(self, config):
         """Initializes statistics information and saves the stats config"""
 
-        self.sconfig = None
+        self.sconfig = {}
 
         if __class__.SKEY in config:
             self.sconfig = config[__class__.SKEY]
@@ -558,7 +558,7 @@ class StatsCollector:
     def updateAll(self, ctx : ProgramContext):
         """Updates statistics information (if there was option --stats)"""
 
-        if self.sconfig != None:
+        if self.sconfig:
             self.updateHot(ctx)
             self.updateVars(ctx)
             self.updateInsts(ctx)
