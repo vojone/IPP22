@@ -448,13 +448,13 @@ class Op:
         if type not in [t.INT, t.STR, t.BOOL, t.FLOAT]:
             raise Error.RuntimeError(BAD_VALUE, "Argument specifikující typ musí být int|str|bool|float!", ctx)
 
-        strInput = ctx.input.readline().strip()
-        strInput = strInput.lower() if type == Data.Type.BOOL else strInput # If it is bool type it does not matter letter case
+        strIn = ctx.input.readline().strip()
+        strIn = strIn.lower() if type == Data.Type.BOOL else strIn # If it is bool type it does not matter letter case
         inputValue = None 
-        isNotNil = strInput.lower() != "nil" or type == Data.Type.STR
+        notNil = strIn.lower() != "nil" or strIn != "" or type == Data.Type.STR
 
-        if Lang.isValidFormated(type, strInput)and isNotNil:
-            inputValue = Lang.str2value(type, strInput)
+        if (Lang.isValidFormated(type, strIn) or type == t.BOOL) and notNil:
+            inputValue = Lang.str2value(type, strIn)
         else:
             type = Data.Type.NIL
 
@@ -534,6 +534,7 @@ class Op:
         # Negative indexes like in python is supported
         if not src.getValue():
             raise Error.RuntimeError(INVALID_STRING_OP, "Operandem nemůže být prázdný řetězec!", ctx)
+
         if indexInt >= len(dst.getValue()) or indexInt < -len(dst.getValue()):
             raise Error.RuntimeError(INVALID_STRING_OP, "Index mimo hranice pole!", ctx)
 
@@ -912,7 +913,7 @@ class Lang:
             return chr(int(convertable)) # Returning unicode char corresponding to converted number sequence
 
         t = Data.Type
-        if (string == "nil" and type != t.STR and type != t.BOOL) or type == t.NIL: # Everything can have nil value (and nil type can have only nil value)
+        if (string == "nil" and type != t.STR) or type == t.NIL: # Everything can have nil value (and nil type can have only nil value)
             return None
 
         elif type == Data.Type.BOOL:

@@ -107,9 +107,15 @@
             ./php8.1 test.php [OPTIONS]
     
             Options:
-            --help          Writes brief help to STDIN 
-            --directory=''  Specififes directory with tests (implicitly it is current folder)
-            --recursive     Checks nested folders in given directory
+            --help              Writes brief help to STDIN 
+            --directory=''      Specififes directory with tests (implicitly it is current folder)
+            --recursive         Checks nested folders in given directory
+            --parse-script=''   Specifies path to parser (implicitly 'parse.php')
+            --int-script=''     Specifies path to interperter (implicitly 'interpret.py')
+            --parse-only        Test only translation of source code to XML by parser
+            --int-only          Test only intepretation of XML
+            --jexampath=''      Specifies path to directory with jexam tool (implicitly '/pub/courses/ipp/jexamxml/')
+            --noclean           Test framework does not delete temporary files (with differences)
     
             DOC;
         }
