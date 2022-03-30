@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<program language="IPPcode22">
+<!-- (5 + 11)*4-32  -->
+	<instruction order="10" opcode="PUSHS">
+		<arg1 type="int">5</arg1>
+	</instruction>
+    <instruction order="20" opcode="PUSHS">
+		<arg1 type="int">11</arg1>
+	</instruction>
+    <instruction order="30" opcode="ADDS">
+	</instruction>
+    <instruction order="40" opcode="PUSHS">
+		<arg1 type="int">4</arg1>
+	</instruction>
+    <instruction order="50" opcode="MULS">
+		
+	</instruction>
+    <instruction order="55" opcode="PUSHS">
+		<arg1 type="int">32</arg1>
+	</instruction>
+    <instruction order="60" opcode="SUBS">
+	</instruction>
+    <instruction order="70" opcode="DEFVAR">
+		<arg1 type="var">GF@test1</arg1>
+	</instruction>
+    <instruction order="75" opcode="POPS">
+		<arg1 type="var">GF@test1</arg1>
+	</instruction>
+    <instruction order="80" opcode="WRITE">
+		<arg1 type="var">GF@test1</arg1>
+	</instruction>
+</program>

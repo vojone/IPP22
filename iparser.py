@@ -312,7 +312,7 @@ class IParser:
             order = __class__.safeGetOrder(i)
 
             if lastOrder == order:
-                raise Error.XMLError(BAD_XML, "Nalezena duplicita atribtuu order! (u instrukce "+opcode+")!")
+                raise Error.XMLError(BAD_XML, "Nalezena duplicita atributu order! (u instrukce "+opcode+")!")
             if not Lang.isInstruction(opcode):
                 raise Error.XMLError(BAD_XML, "Neznámý operační kód '"+opcode+"'!")
 

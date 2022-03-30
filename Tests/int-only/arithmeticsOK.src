@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<program language="IPPcode22">
+	<instruction order="10" opcode="DEFVAR">
+		<arg1 type="var">GF@test1</arg1>
+	</instruction>
+    <instruction order="15" opcode="DEFVAR">
+		<arg1 type="var">GF@test2</arg1>
+	</instruction>
+    <instruction order="20" opcode="MOVE">
+		<arg1 type="var">GF@test1</arg1>
+        <arg2 type="int">5</arg2>
+	</instruction>
+    <instruction order="30" opcode="MOVE">
+		<arg1 type="var">GF@test2</arg1>
+        <arg2 type="int">10</arg2>
+	</instruction>
+    <instruction order="40" opcode="ADD">
+		<arg1 type="var">GF@test1</arg1>
+        <arg2 type="var">GF@test1</arg2>
+        <arg3 type="var">GF@test2</arg3>
+	</instruction>
+    <instruction order="50" opcode="SUB">
+		<arg1 type="var">GF@test1</arg1>
+        <arg2 type="var">GF@test1</arg2>
+        <arg3 type="int">-5</arg3>
+	</instruction>
+    <instruction order="60" opcode="MUL">
+		<arg1 type="var">GF@test1</arg1>
+        <arg2 type="var">GF@test1</arg2>
+        <arg3 type="int">2</arg3>
+	</instruction>
+    <instruction order="70" opcode="IDIV">
+		<arg1 type="var">GF@test1</arg1>
+        <arg2 type="var">GF@test1</arg2>
+        <arg3 type="int">5</arg3>
+	</instruction>
+    <instruction order="80" opcode="WRITE">
+		<arg1 type="var">GF@test1</arg1>
+	</instruction>
+</program>

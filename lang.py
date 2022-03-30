@@ -263,7 +263,7 @@ class Utils:
         stringLen = len(string.getValue())
 
         # It is possible to index string from back (by negative numbers)
-        if indexInt >= stringLen or indexInt < -stringLen:
+        if indexInt >= stringLen or indexInt < 0:
             raise Error.RuntimeError(INVALID_STRING_OP, "Index mimo hranice řetězce!", ctx)
 
         return string.getValue()[indexInt]
@@ -292,6 +292,35 @@ class Utils:
             return lOp.getValue() != rOp.getValue()
         else:
             return lOp.getValue() == rOp.getValue()
+
+    
+    def getPrintableValue(data : Data) -> str:
+        """Converts Data value to printable represenation (__str__ method in 
+        data object is used for debugging and contains also type)
+
+        Args:
+            data (Data): data to its value is should be converted
+
+        Returns:
+            (str)
+        """
+
+        val = data.getValue()
+
+        toPrint = None
+        if data.getType() == Data.Type.BOOL: 
+            if val == True:
+                toPrint = "true"
+            else:
+                toPrint = "false"
+        elif data.getType() == Data.Type.NIL:
+            toPrint = ""
+        elif data.getType() == Data.Type.FLOAT:
+            toPrint = float.hex(val)
+        else:
+            toPrint = str(val)
+
+        return toPrint
 
 
 
@@ -448,38 +477,25 @@ class Op:
         if type not in [t.INT, t.STR, t.BOOL, t.FLOAT]:
             raise Error.RuntimeError(BAD_VALUE, "Argument specifikující typ musí být int|str|bool|float!", ctx)
 
-        strIn = ctx.input.readline().strip()
-        strIn = strIn.lower() if type == Data.Type.BOOL else strIn # If it is bool type it does not matter letter case
-        inputValue = None 
-        notNil = strIn.lower() != "nil" or strIn != "" or type == Data.Type.STR
-
-        if (Lang.isValidFormated(type, strIn) or type == t.BOOL) and notNil:
-            inputValue = Lang.str2value(type, strIn)
+        inp = ctx.input.readline().strip()
+        inp = inp.lower() if type == t.BOOL else inp # If it is bool type it does not matter letter case
+        
+        inputValue = None
+        notNil = (inp != "" or type == t.STR)
+        #                                         v   Everything except True is considered as false (except of empty string)
+        if (Lang.isValidFormated(type, inp) or type == t.BOOL) and notNil:
+            inputValue = Lang.str2value(type, inp)
         else:
-            type = Data.Type.NIL
+            type = t.NIL
 
         ctx.setVar(dst, Data(type, inputValue))
 
 
-    def getPrintableValue(ctx : ProgramContext, args : list):
-        data = ctx.getData(args[0])
-        toPrint = data.getValue()
-
-        if data.getType() == Data.Type.BOOL: 
-            if toPrint == True:
-                toPrint = "true"
-            else:
-                toPrint = "false"
-        elif data.getType() == Data.Type.NIL:
-            toPrint = ""
-        elif data.getType() == Data.Type.FLOAT:
-            toPrint = float.hex(toPrint)
-
-        return toPrint
-
-
     def write(ctx : ProgramContext, args : list):
-        toPrint = __class__.getPrintableValue(ctx, args)
+        toBeConverted = ctx.getData(args[0])
+
+        toPrint = Utils.getPrintableValue(toBeConverted)
+        
         print(toPrint, end='')
 
     
@@ -535,7 +551,7 @@ class Op:
         if not src.getValue():
             raise Error.RuntimeError(INVALID_STRING_OP, "Operandem nemůže být prázdný řetězec!", ctx)
 
-        if indexInt >= len(dst.getValue()) or indexInt < -len(dst.getValue()):
+        if indexInt >= len(dst.getValue()) or indexInt < 0:
             raise Error.RuntimeError(INVALID_STRING_OP, "Index mimo hranice pole!", ctx)
 
         resultList = list(dst.getValue()) # Converting string to list to modify one character
@@ -608,7 +624,10 @@ class Op:
 
 
     def dprint(ctx : ProgramContext, args : list):
-        toPrint = __class__.getPrintableValue(ctx, args)
+        arg = ctx.getData(args[0])
+
+        toPrint = Utils.getPrintableValue(arg)
+
         print(toPrint, end='', file=sys.stderr)
 
 
