@@ -22,7 +22,7 @@ class SAnalayzer:
         self.reset()
 
     def reset(self):
-        """Resets semantic analyzer"""
+        """Resets semntaic analyzer"""
 
         self.jumpTargets = {}
         self.fakeCtx = ProgramContext()
@@ -99,9 +99,7 @@ class IParser:
     ORDER_ATTR = "order"
     OPCODE_ATTR = "opcode"
     TYPE_ATTR = "type"
-    LANG_ATTR = "language"
 
-    LANGUAGE = ".IPPcode22"
 
     def __init__(self, config : dict):
         self.config = config
@@ -343,11 +341,6 @@ class IParser:
         expRootType = xml.Node.ELEMENT_NODE
         if root.nodeType != expRootType or root.tagName != __class__.ROOT_TAG:
             raise Error.XMLError(BAD_XML, "Očekáván kořenový XML tag "+ __class__.ROOT_TAG+", nebyl nalezen!")
-
-        lang = __class__.safeGetAttribute(__class__.LANG_ATTR, root, False)
-        if lang.upper() == __class__.LANGUAGE.upper(): # Checking ippcode22 attribute (case insensitive)
-            raise Error.XMLError(BAD_XML, "Neplatný obsah atributu '"+__class__.LANG_ATTR+"', očekáváno '"+__class__.LANGUAGE+"'!")
-
 
         instructions = __class__.safeGetChildren(__class__.INSTR_TAG, root)
 

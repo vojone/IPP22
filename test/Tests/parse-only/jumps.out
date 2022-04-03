@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<program language="IPPcode22">
+    <instruction opcode='LABEL' order='1'>
+        <arg1 type='label'>label</arg1>
+    </instruction>
+    <instruction opcode='JUMP' order='2'>
+        <arg1 type='label'>label</arg1>
+    </instruction>
+    <instruction opcode='JUMPIFEQ' order='3'>
+        <arg1 type='label'>ADD</arg1>
+        <arg2 type='int'>123</arg2>
+        <arg3 type='nil'>nil</arg3>
+    </instruction>
+    <instruction opcode='JUMPIFNEQ' order='4'>
+        <arg1 type='label'>SUB</arg1>
+        <arg2 type='string'>abc</arg2>
+        <arg3 type='string'>abc</arg3>
+    </instruction>
+    <instruction opcode='LABEL' order='5'>
+        <arg1 type='label'>ADD</arg1>
+    </instruction>
+    
+</program>

@@ -1,0 +1,9 @@
+.Ippcode22
+
+WRITE string@ab<cd>ef\032ab&c\032
+
+LABEL _-$&%*!?abc
+
+DEFVAR GF@abc_-$&%*
+
+WRITE string@áčěčšřěáěíáíéíí%$ů

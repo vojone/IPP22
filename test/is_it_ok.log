@@ -1,0 +1,194 @@
+Archive:  xdvora3o.zip
+  inflating: parse.php               
+  inflating: parser.php              
+  inflating: printer.php             
+  inflating: scanner.php             
+  inflating: stat.php                
+  inflating: tables.php              
+  inflating: test.php                
+  inflating: ui.php                  
+   creating: Tests/
+   creating: Tests/parse-only/
+ extracting: Tests/parse-only/arithmetics.in  
+  inflating: Tests/parse-only/arithmetics.out  
+ extracting: Tests/parse-only/arithmetics.rc  
+  inflating: Tests/parse-only/arithmetics.src  
+ extracting: Tests/parse-only/badarithmetics.rc  
+ extracting: Tests/parse-only/badarithmetics1.in  
+ extracting: Tests/parse-only/badarithmetics1.out  
+ extracting: Tests/parse-only/badarithmetics1.rc  
+  inflating: Tests/parse-only/badarithmetics1.src  
+ extracting: Tests/parse-only/badarithmetics2.in  
+ extracting: Tests/parse-only/badarithmetics2.out  
+ extracting: Tests/parse-only/badarithmetics2.rc  
+  inflating: Tests/parse-only/badarithmetics2.src  
+ extracting: Tests/parse-only/badarithmetics3.in  
+ extracting: Tests/parse-only/badarithmetics3.out  
+ extracting: Tests/parse-only/badarithmetics3.rc  
+  inflating: Tests/parse-only/badarithmetics3.src  
+ extracting: Tests/parse-only/badheader.in  
+ extracting: Tests/parse-only/badheader.out  
+ extracting: Tests/parse-only/badheader.rc  
+ extracting: Tests/parse-only/badheader.src  
+ extracting: Tests/parse-only/badintegerformats.in  
+ extracting: Tests/parse-only/badintegerformats.out  
+ extracting: Tests/parse-only/badintegerformats.rc  
+  inflating: Tests/parse-only/badintegerformats.src  
+ extracting: Tests/parse-only/badopcode.in  
+ extracting: Tests/parse-only/badopcode.out  
+ extracting: Tests/parse-only/badopcode.rc  
+  inflating: Tests/parse-only/badopcode.src  
+ extracting: Tests/parse-only/comments.in  
+  inflating: Tests/parse-only/comments.out  
+ extracting: Tests/parse-only/comments.rc  
+  inflating: Tests/parse-only/comments.src  
+ extracting: Tests/parse-only/complex1.in  
+  inflating: Tests/parse-only/complex1.out  
+ extracting: Tests/parse-only/complex1.rc  
+  inflating: Tests/parse-only/complex1.src  
+ extracting: Tests/parse-only/empty.in  
+ extracting: Tests/parse-only/empty.out  
+ extracting: Tests/parse-only/empty.rc  
+ extracting: Tests/parse-only/empty.src  
+ extracting: Tests/parse-only/function.in  
+  inflating: Tests/parse-only/function.out  
+ extracting: Tests/parse-only/function.rc  
+  inflating: Tests/parse-only/function.src  
+ extracting: Tests/parse-only/header.in  
+  inflating: Tests/parse-only/header.out  
+ extracting: Tests/parse-only/header.rc  
+ extracting: Tests/parse-only/header.src  
+ extracting: Tests/parse-only/headerOK.in  
+  inflating: Tests/parse-only/headerOK.out  
+ extracting: Tests/parse-only/headerOK.rc  
+ extracting: Tests/parse-only/headerOK.src  
+ extracting: Tests/parse-only/integerformats.in  
+  inflating: Tests/parse-only/integerformats.out  
+ extracting: Tests/parse-only/integerformats.rc  
+  inflating: Tests/parse-only/integerformats.src  
+ extracting: Tests/parse-only/jumps.in  
+  inflating: Tests/parse-only/jumps.out  
+ extracting: Tests/parse-only/jumps.rc  
+  inflating: Tests/parse-only/jumps.src  
+ extracting: Tests/parse-only/specialchars.in  
+  inflating: Tests/parse-only/specialchars.out  
+ extracting: Tests/parse-only/specialchars.rc  
+  inflating: Tests/parse-only/specialchars.src  
+  inflating: errors.py               
+  inflating: interpret.py            
+  inflating: iparser.py              
+  inflating: lang.py                 
+  inflating: program.py              
+  inflating: readme1.pdf             
+  inflating: rozsireni               
+  inflating: readme2.pdf             
+   creating: Tests/both/
+   creating: Tests/int-only/
+ extracting: Tests/int-only/arg_incompatibility.in  
+ extracting: Tests/int-only/arg_incompatibility.out  
+ extracting: Tests/int-only/arg_incompatibility.rc  
+  inflating: Tests/int-only/arg_incompatibility.src  
+ extracting: Tests/int-only/arithmeticsOK.in  
+ extracting: Tests/int-only/arithmeticsOK.out  
+ extracting: Tests/int-only/arithmeticsOK.rc  
+  inflating: Tests/int-only/arithmeticsOK.src  
+ extracting: Tests/int-only/empty.in  
+ extracting: Tests/int-only/empty.out  
+ extracting: Tests/int-only/empty.rc  
+  inflating: Tests/int-only/empty.src  
+ extracting: Tests/int-only/float_arithmeticsOK.in  
+  inflating: Tests/int-only/float_arithmeticsOK.out  
+ extracting: Tests/int-only/float_arithmeticsOK.rc  
+  inflating: Tests/int-only/float_arithmeticsOK.src  
+ extracting: Tests/int-only/not_wellformed.in  
+ extracting: Tests/int-only/not_wellformed.out  
+ extracting: Tests/int-only/not_wellformed.rc  
+  inflating: Tests/int-only/not_wellformed.src  
+ extracting: Tests/int-only/stack_arithmeticsOK.in  
+ extracting: Tests/int-only/stack_arithmeticsOK.out  
+ extracting: Tests/int-only/stack_arithmeticsOK.rc  
+  inflating: Tests/int-only/stack_arithmeticsOK.src  
+ extracting: Tests/int-only/stringOK.in  
+ extracting: Tests/int-only/stringOK.out  
+ extracting: Tests/int-only/stringOK.rc  
+  inflating: Tests/int-only/stringOK.src  
+Python 3.8 skript - IPPcode22 interpret
+Provede kód v jazyce IPPcode22 přeložený do vstupní XML reprezentace (např.
+scriptem parse.php). Při spuštění skriptu je nutné uvést alespoň jeden z
+parametrů --input="" (soubor se vtupem programu) nebo --source="" (soubor
+se vstupní reprezentací kódu). Výstup provádění programu je vypsán na standard-
+ní chybový výstup a chybová hlášení na standardní chybový výstup.
+
+POUŽITÍ:
+python3.8 [--input="VSTUPNI_SOUBOR"] [--source="SOUBOR_S_KODEM"] [MOŽNOSTI]
+
+MOŽNOSTI:
+--help      Vypíše stručnou nápovědu na standardní výstup
+
+--source="" Obsahuje cestu k souboru se zdrojovou reprezentaci kódu v XML (v
+            případě, že tento přepínač zadán není, je zdroj čten ze standardního vstupu 
+            a musí být povinně uveden přepínač --input="")
+
+--input=""  Obsahuje cestu k souboru se vstupy pro interpretaci (v
+            případě, že tento přepínač zadán není, je vstupy čteny ze standardního 
+            vstupu a musí být povinně uveden přepínač --source="")
+
+
+Návratové kódy:
+0	Úspěšná interpretace
+0-49	Uživatelsky definovatelné návratové kódy (instrukce EXIT)
+10	Neplatná kombinace parametrů
+11	Chyba při čtení vstupního souboru
+12	Chyba při čtení souboru s XML reprezentací kódu
+31	Chybná syntaxe XML
+32	Chybná XML reprezentace kódu (např. volání neexistrující instrukce)
+52	Sémantická chyba 
+53-58	Běhové chyby
+99	Interní chyba programu
+    
+test.php - Test framework for IPPcode22 parser and interpret (PHP8 skript)
+
+Usage:
+./php8.1 test.php [OPTIONS]
+
+Options:
+--help              Writes brief help to STDIN 
+--directory=''      Specififes directory with tests (implicitly it is current folder)
+--recursive         Checks nested folders in given directory
+--parse-script=''   Specifies path to parser (implicitly 'parse.php')
+--int-script=''     Specifies path to interperter (implicitly 'interpret.py')
+--parse-only        Test only translation of source code to XML by parser
+--int-only          Test only intepretation of XML
+--jexampath=''      Specifies path to directory with jexam tool (implicitly '/pub/courses/ipp/jexamxml/')
+--noclean           Test framework does not delete temporary files (with differences)
+IPPcode22 - analyzátor kódu (PHP8 skript)
+
+Program kontroluje lexikální a syntaktickou správnost programu 
+v jazyce IPPcode22, který čte ze standardního vstupu (STDIN). 
+Pokud je v pořádku je na stadardní výstup (STDOUT) vytisknuta 
+XML reprezentace vstupního programu.
+
+Použití:
+./php8.1 parse.php [--help] [< 'vstup'] [> 'vystup']
+./php8.1 parse.php [< 'vstup'] [> 'vystup'] --stats='s' [--loc, --comments,...]
+
+Možnosti:
+--help      Vypíše nápovědu (NELZE KOMBINOVAT s jiným parametrem)
+--stats='s' Nastaví soubor cílový soubor pro ukládání statistik (musí předcházet
+            následujícím přepínačům)
+--loc       Vypíše do souboru se statistikami počet řádků kódu
+--comments  Vypíše do statistik počet řádků, na kterých se vyskytly
+            komentáře
+--jumps     Vypíše počet skokových instrukcí do souboru se statistikami
+--labels    Vypíše počet unikátních cílů skoku
+--fwjumps  Vypíše počet dopředných skoků
+--backjumps Vypíše počet zpětných skoků 
+--badjumps  Vypíše do souboru se statistikami počet skoků na neexistující návěští
+
+
+Návratové kódy:
+0   Vstupní program neobsahuje žádnou lexikální nebo syntaktickou chybu
+21  Chybějící/neplatná hlavička na začátku programu
+22  Neznámý/chybný operační kód
+23  Jiná lexikální/syntaktická chyba
+99  Interní chyba analyzátoru 

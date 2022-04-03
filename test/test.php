@@ -42,14 +42,14 @@
 
     $lOpts = array('help', 'directory::', 'recursive', 
                    'parse-script::', 'int-script::', 
-                   'parse-only', 'int-only', 'jexampath:', 
+                   'parse-only', 'int-only', 'jexampath::', 
                    'noclean');
 
     $tests = new Tests();
 
     $sOpts = '';
     $args = getopt($sOpts, $lOpts);
-    $tests->parseOpts($argv, $args);
+    $tests->parseOpts($args);
 
     HTML::printProlog();
 
@@ -122,29 +122,9 @@
         }
 
         /**
-         * Checks all options if they are allowed and recognized 
-         * (exits program with error code, if there is a bad one)
-         * @param Array $args output of getopt function
-         * @param Array $argv raw argv
-         */
-        public function checkOpts($argv, $args) {
-            foreach($argv as $key => $arg) {
-                $argName = preg_replace('/^--([-\w]+)(=.*)?$/i', '${1}', $arg);
-                if(!array_key_exists($argName, $args) && $key > 0) {
-                    fwrite($this->stderr, "Error: Unrecognized option {$argName}!".PHP_EOL);
-                    exit(INVALID_ARG_COMBINATION);
-                }
-            }
-        }
-
-        /**
          * Parses arguments from cmdline
-         * @param Array $args output of getopt function
-         * @param Array $argv raw argv 
          */
-        public function parseOpts($argv, $args) {
-            $this->checkOpts($argv, $args);
-
+        public function parseOpts($args) {
             if(isset($args['help'])) {
                 if(count($args) > 1) {
                     fwrite($this->stderr, 'Error: Cannot use --help option with other options!'.PHP_EOL);

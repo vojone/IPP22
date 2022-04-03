@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<program language="IPPcode22">
+    <instruction opcode='WRITE' order='1'>
+        <arg1 type='string'>ab&lt;cd&gt;ef\032ab&amp;c\032</arg1>
+    </instruction>
+    <instruction opcode='LABEL' order='2'>
+        <arg1 type='label'>_-$&amp;%*!?abc</arg1>
+    </instruction>
+    <instruction opcode='DEFVAR' order='3'>
+        <arg1 type='var'>GF@abc_-$&amp;%*</arg1>
+    </instruction>
+    <instruction opcode='WRITE' order='4'>
+        <arg1 type='string'>áčěčšřěáěíáíéíí%$ů</arg1>
+    </instruction>
+    
+</program>
