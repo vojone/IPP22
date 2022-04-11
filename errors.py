@@ -41,13 +41,13 @@ class Error:
         __class__.print("Unexpected exception: "+str(e))
         
         if e.__traceback__.tb_next: 
-            print("\t("+str(e.__traceback__.tb_next.tb_frame.f_code.co_filename)+", line "+str(e.__traceback__.tb_next.tb_lineno)+")", file=sys.stderr)
+            print(f"\t({str(e.__traceback__.tb_next.tb_frame.f_code.co_filename)}, line {str(e.__traceback__.tb_next.tb_lineno)})", file=sys.stderr)
 
     @staticmethod
     def print(msg: str):
         """Prints error msg in specific format"""
 
-        print("\033[1;31mChyba: \033[0m"+msg, file=sys.stderr)
+        print(f"\033[1;31mChyba: \033[0m{msg}", file=sys.stderr)
 
     @staticmethod
     def exit(errCode: int, msg: str):
@@ -74,7 +74,7 @@ class Error:
             self.prefix = "Chyba:"
 
         def print(self):
-            print("\033[0;31m"+self.prefix+" \033[0m"+self.msg, file=sys.stderr)
+            print(f"\033[0;31m{self.prefix} \033[0m{self.msg}", file=sys.stderr)
 
         def getCode(self):
             return self.code
@@ -131,13 +131,13 @@ class Error:
 
         def __init__(self, code: int, msg: str = None, ctx = None):
             super().__init__(code, msg)
-            self.prefix = "Běhová chyba ("+str(code)+"):"
+            self.prefix = f"Běhová chyba ({str(code)}):"
             self.ctx = ctx
 
         def print(self):
             failed = self.ctx.getInstruction() if self.ctx else None
-            suffix = "\033[1m("+str(failed)+")\033[0m" if failed else ""
-            print("\033[0;31m"+self.prefix+" \033[0m"+self.msg+" "+suffix, file=sys.stderr)
+            suffix = f"\033[1m({str(failed)})\033[0m" if failed else ""
+            print(f"\033[0;31m{self.prefix} \033[0m{self.msg} {suffix}", file=sys.stderr)
     
     class InternalError(MException):
         """MException subclass for internal errors
@@ -148,5 +148,5 @@ class Error:
             self.prefix = "Interní chyba programu:"
 
         def print(self):
-            print("\033[1;31m"+self.prefix+" \033[0m"+self.msg, file=sys.stderr)
+            print(f"\033[1;31m{self.prefix} \033[0m{self.msg}", file=sys.stderr)
 

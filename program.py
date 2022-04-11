@@ -71,7 +71,7 @@ class Data:
         if self.isValCompatible(newValue):
             self.value = newValue
         else:
-            raise Error.InternalError(INTERNAL_ERROR, "Nelze přiřadit hodnotu typu "+newValue.__class__.__name__+" datovému objektu s typem "+self.type.name+"!")
+            raise Error.InternalError(INTERNAL_ERROR, f"Nelze přiřadit hodnotu typu {newValue.__class__.__name__} datovému objektu s typem {self.type.name}!")
 
 
 class Operand:
@@ -374,7 +374,7 @@ class ProgramContext:
         """
 
         if name in self.labelMap:
-            raise Error.SemanticError(SEMANTIC_ERROR, "Redefinice návěští "+name+"!")
+            raise Error.SemanticError(SEMANTIC_ERROR, f"Redefinice návěští {name}!")
         else:
             self.labelMap[name] = targetIndex
 
@@ -383,7 +383,7 @@ class ProgramContext:
         """Returns target index of given label"""
 
         if not name in self.labelMap:
-            raise Error.SemanticError(SEMANTIC_ERROR, "Nedefinované návěští "+name+"!")
+            raise Error.SemanticError(SEMANTIC_ERROR, f"Nedefinované návěští {name}!")
         else:
             return self.labelMap[name]
 
@@ -392,7 +392,7 @@ class ProgramContext:
         """Returns specific frame from dictionary with frames"""
 
         if not frameMark in self.frames or self.frames[frameMark] == None:
-            raise Error.RuntimeError(FRAME_NOT_EXISTS, "Rámec '"+frameMark.name+"' neexistuje!", self)
+            raise Error.RuntimeError(FRAME_NOT_EXISTS, f"Rámec '{frameMark.name}' neexistuje!", self)
         else:
             return self.frames[frameMark]
 
@@ -405,7 +405,7 @@ class ProgramContext:
         frame = self.getFrame(frameMark)
 
         if name in frame.getVars():
-            raise Error.RuntimeError(SEMANTIC_ERROR, "Redefinice proměnné "+name+" v rámci "+frameMark.name+"!", self)
+            raise Error.RuntimeError(SEMANTIC_ERROR, f"Redefinice proměnné {name} v rámci {frameMark.name}!", self)
         else:
             frame.setVar(name, None)
 
@@ -427,9 +427,9 @@ class ProgramContext:
         frame = self.getFrame(frameMark)
 
         if not name in frame.getVars():
-            raise Error.RuntimeError(VAR_NOT_EXISTS, "Proměnná '"+name+"' neexistuje v rámci "+frameMark.name+"!", self)
+            raise Error.RuntimeError(VAR_NOT_EXISTS, f"Proměnná '{name}' neexistuje v rámci {frameMark.name}!", self)
         elif frame.getVar(name) == None and not canBeUninit:
-            raise Error.RuntimeError(MISSING_VALUE, "Neinicializovaná proměnná '"+name+"' v rámci "+frameMark.name+"!", self)
+            raise Error.RuntimeError(MISSING_VALUE, f"Neinicializovaná proměnná '{name}' v rámci {frameMark.name}!", self)
         else:
             return frame, name
 
@@ -470,7 +470,7 @@ class ProgramContext:
         elif operand.getType() == Operand.Type.VAR:
             return self.getVar(operand, False)
         else:
-            raise Error.InternalError(INTERNAL_ERROR, "Nelze získat data z operandu "+operand.getType().name+"!")
+            raise Error.InternalError(INTERNAL_ERROR, f"Nelze získat data z operandu {operand.getType().name}!")
 
     
     def newTempFrame(self):
@@ -573,7 +573,7 @@ class StatsCollector:
             try:
                 fStream = open(file, "w")
             except:
-                raise Error.FileError(OUPUT_FILE_ERROR, "Nelze vytvořit/zapsat statistiky do souboru '"+file+"'!")
+                raise Error.FileError(OUPUT_FILE_ERROR, f"Nelze vytvořit/zapsat statistiky do souboru '{file}'!")
 
             for stat in self.sconfig[file]:
                 data = None
@@ -585,7 +585,7 @@ class StatsCollector:
                 elif stat == "vars":
                     data = self.vars
                 else:
-                    raise Error.InternalError(INTERNAL_ERROR, "Nepodporovaný typ statistiky '"+stat+"'!")
+                    raise Error.InternalError(INTERNAL_ERROR, f"Nepodporovaný typ statistiky '{stat}'!")
                 
                 print(data, file=fStream, end="\n")
 

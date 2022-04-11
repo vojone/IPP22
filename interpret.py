@@ -69,7 +69,7 @@ class ConfigCreator:
         if access(path, F_OK) and access(path, R_OK):
             return
         else:
-            Error.exit(INPUT_FILE_ERROR, "Chyba při otevírání souboru '"+path+"' pro čtení!")
+            Error.exit(INPUT_FILE_ERROR, f"Chyba při otevírání souboru '{path}' pro čtení!")
 
 
     @staticmethod
@@ -88,7 +88,7 @@ class ConfigCreator:
         try:
             opts, _ = getopt.getopt(argv[1:], __class__.SHORT_O, __class__.LONG_O)
         except getopt.GetoptError as error:
-            Error.exit(ARGUMENT_ERROR, "Neznámý přepínač "+error.opt+" (zadejte --help pro povolené přepínače)!")
+            Error.exit(ARGUMENT_ERROR, f"Neznámý přepínač {error.opt} (zadejte --help pro povolené přepínače)!")
 
         for opt, val in opts:
             if opt in ["--source", "--input"] and val != "":
@@ -102,7 +102,7 @@ class ConfigCreator:
             elif opt in ["--insts", "--hot", "--vars"]:
 
                 if currentStatsFile == None: # There must be --stats option to specify target file
-                    Error.exit(ARGUMENT_ERROR, "Přepínači "+opt+" musí předcházet přepínač --stats="" (zadejte --help pro nápovědu)!")
+                    Error.exit(ARGUMENT_ERROR, f"Přepínači {opt} musí předcházet přepínač --stats="" (zadejte --help pro nápovědu)!")
                 else:
                     iconfig[sKey][currentStatsFile][opt.lstrip('-')] = None
 
@@ -110,7 +110,7 @@ class ConfigCreator:
                 iconfig["help"] = True
 
             else:
-                Error.exit(ARGUMENT_ERROR, "Chybný přepínač "+opt+" (zadejte --help pro nápovědu)!")
+                Error.exit(ARGUMENT_ERROR, f"Chybný přepínač {opt} (zadejte --help pro nápovědu)!")
 
         return iconfig
 

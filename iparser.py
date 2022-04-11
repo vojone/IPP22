@@ -73,17 +73,17 @@ class SAnalayzer:
             nOperands = len(operands)
             nExpOp = len(expOperandSymbols)
             if nOperands != nExpOp: # Check amount of arguments of instruction
-                raise Error.SemanticError(BAD_XML, "Instrukce "+opcode+" (o. "+str(order)+") očekává "+str(nExpOp)+" operandů, nalezeno "+ str(nOperands)+"!")
+                raise Error.SemanticError(BAD_XML, f"Instrukce {opcode} (o. {order}) očekává {nExpOp} operandů, nalezeno {nOperands}!")
 
             for index, op in enumerate(operands): # Check compatibility of operands
                 if not Lang.isOperandCompatible(op, expOperandSymbols[index]):
-                    raise Error.SemanticError(SEMANTIC_ERROR, "Nekompatibilní typ operandu instrukce "+opcode+"(o. "+str(order)+")! očekáván "+expOperandSymbols[index]+", nalezen "+Lang.op2Str(op))
+                    raise Error.SemanticError(SEMANTIC_ERROR, f"Nekompatibilní typ operandu instrukce {opcode}(o. {order})! očekáván {expOperandSymbols[index]}, nalezen {Lang.op2Str(op)}")
         
             self.resolveSAction(i, index, operands)
 
         for jt in self.jumpTargets: 
             if jt not in self.fakeCtx.getLabelMap():
-                raise Error.SemanticError(SEMANTIC_ERROR, "Skok na nedefinované návěští '"+jt+"'! (o. "+str(self.jumpTargets[jt])+")")
+                raise Error.SemanticError(SEMANTIC_ERROR, "Skok na nedefinované návěští '{jt}'! (o. {self.jumpTargets[jt]})")
             
 
 
@@ -122,14 +122,14 @@ class IParser:
         """
 
         if not node.hasAttribute(attrName):
-            raise Error.XMLError(BAD_XML, "Očekávaný atribut: "+attrName+", nebyl nalezen!") 
+            raise Error.XMLError(BAD_XML, f"Očekávaný atribut: {attrName}, nebyl nalezen!") 
 
         attr = node.getAttribute(attrName)
 
         if attr or canBeEmpty:
             return attr
         else:
-            raise Error.XMLError(BAD_XML, "Neočekáváný prázdný atribut "+attrName+"!") 
+            raise Error.XMLError(BAD_XML, f"Neočekáváný prázdný atribut {attrName}!") 
 
 
     @staticmethod
@@ -157,9 +157,9 @@ class IParser:
                 if re.search("^" + childTagNameRE + "$", n.tagName):
                     children.append(n)
                 else:
-                    raise Error.XMLError(BAD_XML, "Neočekávaný XML tag "+n.tagName+"!")
+                    raise Error.XMLError(BAD_XML, f"Neočekávaný XML tag {n.tagName}!")
             else:
-                raise Error.XMLError(BAD_XML, "Neočekávaný XML prvek typu "+n.nodeName+"!")
+                raise Error.XMLError(BAD_XML, f"Neočekávaný XML prvek typu {n.nodeName}!")
         
         return children
 
@@ -177,22 +177,22 @@ class IParser:
         """
 
         if not node.firstChild and not canBeEmpty:
-            raise Error.XMLError(BAD_XML, "Očekáván text uvnitř tagu "+node.tagName+"!")
+            raise Error.XMLError(BAD_XML, f"Očekáván text uvnitř tagu {node.tagName}!")
         elif not node.firstChild and canBeEmpty:
             return ""
 
         if node.firstChild.nodeType != xml.Node.TEXT_NODE:
-            raise Error.XMLError(BAD_XML, "Očekáván text uvnitř tagu "+node.tagName+", nalezen jiný obsah!")
+            raise Error.XMLError(BAD_XML, f"Očekáván text uvnitř tagu {node.tagName}, nalezen jiný obsah!")
         elif len(node.childNodes) > 1:
             for index, ch in enumerate(node.childNodes):
                 if index == 0:
                     continue
                 if ch.nodeType == xml.Node.COMMENT_NODE:
-                    raise Error.XMLError(BAD_XML, "Očekáván POUZE text uvnitř tagu "+node.tagName+", nalezen jiný obsah!")
+                    raise Error.XMLError(BAD_XML, f"Očekáván POUZE text uvnitř tagu {node.tagName}, nalezen jiný obsah!")
         
         data = node.firstChild.data.strip()
         if not data and not canBeEmpty:
-            raise Error.XMLError(BAD_XML, "Neočekávaný prázdný řetězec uvnitř tagu "+node.tagName+"!")
+            raise Error.XMLError(BAD_XML, f"Neočekávaný prázdný řetězec uvnitř tagu {node.tagName}!")
 
         return data
 
@@ -206,7 +206,7 @@ class IParser:
         order = __class__.safeGetAttribute(__class__.ORDER_ATTR, instr, False)
 
         if not order.isdigit() or int(order) == 0:
-            raise Error.XMLError(BAD_XML, "Order atribut musí být celé kladné číslo! Nalezeno: "+order+"!")
+            raise Error.XMLError(BAD_XML, f"Order atribut musí být celé kladné číslo! Nalezeno: {order}!")
 
         return int(order)
 
@@ -239,7 +239,7 @@ class IParser:
 
         for index, op in enumerate(operands):
             if index + 1 != op.getNumber():
-                raise Error.XMLError(BAD_XML, "Špatné číslování argumentů instrukce "+opcode+" (o. "+str(order)+")!")
+                raise Error.XMLError(BAD_XML, f"Špatné číslování argumentů instrukce {opcode} (o. {order})!")
 
 
     @staticmethod
@@ -264,12 +264,12 @@ class IParser:
 
             xmlType = __class__.safeGetAttribute(__class__.TYPE_ATTR, op, False)
             if not Lang.isType(xmlType):
-                raise Error.XMLError(BAD_XML, "Neznámý typ operandu '"+xmlType+"' instrukce "+opcode+" (o.: "+str(order)+")!")
+                raise Error.XMLError(BAD_XML, f"Neznámý typ operandu '{xmlType}' instrukce {opcode} (o.: {order})!")
 
             type = Lang.getType(xmlType)
             content = __class__.safeGetData(op, canBeEmpty=True)
             if not Lang.isValidFormated(type, content):
-                raise Error.XMLError(BAD_XML, "Špatný formát operandu '"+content+"' instrukce "+opcode+" (o.: "+str(order)+")!")
+                raise Error.XMLError(BAD_XML, f"Špatný formát operandu '{content}' instrukce {opcode} (o.: {str(order)})!")
 
             operands.append(__class__.createOperand(opNumber, content, type))
 
@@ -314,9 +314,9 @@ class IParser:
             order = __class__.safeGetOrder(i)
 
             if lastOrder == order:
-                raise Error.XMLError(BAD_XML, "Nalezena duplicita atributu order! (u instrukce "+opcode+")!")
+                raise Error.XMLError(BAD_XML, f"Nalezena duplicita atributu order! (u instrukce {opcode})!")
             if not Lang.isInstruction(opcode):
-                raise Error.XMLError(BAD_XML, "Neznámý operační kód '"+opcode+"'!")
+                raise Error.XMLError(BAD_XML, f"Neznámý operační kód '{opcode}'!")
 
             operands = __class__.getOperands(opcode, order, i)
             convInstr = __class__.createInstruction(opcode, order, operands)
@@ -342,11 +342,11 @@ class IParser:
 
         expRootType = xml.Node.ELEMENT_NODE
         if root.nodeType != expRootType or root.tagName != __class__.ROOT_TAG:
-            raise Error.XMLError(BAD_XML, "Očekáván kořenový XML tag "+ __class__.ROOT_TAG+", nebyl nalezen!")
+            raise Error.XMLError(BAD_XML, f"Očekáván kořenový XML tag {__class__.ROOT_TAG}, nebyl nalezen!")
 
         lang = __class__.safeGetAttribute(__class__.LANG_ATTR, root, False)
         if lang.upper() == __class__.LANGUAGE.upper(): # Checking ippcode22 attribute (case insensitive)
-            raise Error.XMLError(BAD_XML, "Neplatný obsah atributu '"+__class__.LANG_ATTR+"', očekáváno '"+__class__.LANGUAGE+"'!")
+            raise Error.XMLError(BAD_XML, f"Neplatný obsah atributu '{__class__.LANG_ATTR}', očekáváno '{__class__.LANGUAGE}'!")
 
 
         instructions = __class__.safeGetChildren(__class__.INSTR_TAG, root)
@@ -376,7 +376,7 @@ class IParser:
         try:
             xmlSource = xml.parse(self.config["sourceOpened"])
         except expat.ExpatError as e:
-            raise Error.XMLError(NOT_WELLFORMED, "Špatně formátovaný XML zdroj ("+str(e.lineno)+", "+str(e.offset)+")!")
+            raise Error.XMLError(NOT_WELLFORMED, f"Špatně formátovaný XML zdroj ({str(e.lineno)}, {e.offset})!")
         except:
             raise Error.XMLError(NOT_WELLFORMED)
 
