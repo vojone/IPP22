@@ -108,7 +108,13 @@
 
                 $fileSpecifier = '/^--stats=.*$/';
                 if(preg_match($fileSpecifier, $arg) && isset($args['stats'])) {
-                    $activeFilename = $args['stats'][$statsIndex];
+
+                    if(is_array($args['stats'])) {
+                        $activeFilename = $args['stats'][$statsIndex];
+                    }
+                    else {
+                        $activeFilename = $args['stats'];
+                    }
                     
                     //There cannot be two groups of statistics in one file
                     if(array_key_exists($activeFilename, $stats)) { 

@@ -24,7 +24,7 @@ CompareLevel = 3
 CaseSensitive = 1
 
 # Off - 0 On - 1
-IgnoreWhitespaces = 1
+IgnoreWhitespaces = 0
 
 # XML encoding (default UTF-8)
 Encoding = UTF-8
@@ -53,4 +53,3 @@ IgnoreValues = 0
 # Key element and attributes
 #KeyAttribute = books>book|uuid
 #KeyElement = books>book>name
-
