@@ -11,6 +11,7 @@
     ini_set('display_errors', 'stderr');
 
     define('INVALID_ARG_COMBINATION', 10);
+    define('INPUT_FILE_ERROR', 11);
     define('BAD_PATH_GIVEN', 41);
     define('SUCCESS', 0);
 
@@ -38,12 +39,14 @@
         public static $tempXMLFileSuffix = 'xml.tmp';
 
         public static $diffFileSuffix = 'diff';
+
+        public static $matchRE = '/.*/i';
     }
 
-    $lOpts = array('help', 'directory::', 'recursive', 
-                   'parse-script::', 'int-script::', 
+    $lOpts = array('help', 'directory:', 'recursive', 
+                   'parse-script:', 'int-script:', 
                    'parse-only', 'int-only', 'jexampath:', 
-                   'noclean');
+                   'noclean', 'match:');
 
     $tests = new Tests();
 
@@ -117,6 +120,7 @@
             --int-only          Test only intepretation of XML
             --jexampath=''      Specifies path to directory with jexam tool (implicitly '/pub/courses/ipp/jexamxml/')
             --noclean           Test framework does not delete temporary files (with differences)
+            --match=''          Spacifies the names of test that should by executed by regex in PCRE format
     
             DOC;
         }
@@ -131,7 +135,7 @@
             foreach($argv as $key => $arg) {
                 $argName = preg_replace('/^--([-\w]+)(=.*)?$/i', '${1}', $arg);
                 if(!array_key_exists($argName, $args) && $key > 0) {
-                    fwrite($this->stderr, "Error: Unrecognized option {$argName}!".PHP_EOL);
+                    fwrite($this->stderr, "Error: Unrecognized option {$argName}! (or missing parameter of the option)".PHP_EOL);
                     exit(INVALID_ARG_COMBINATION);
                 }
             }
@@ -194,6 +198,20 @@
     
             if(isset($args['jexampath'])) {
                 Options::$jexamPath = addSlashToDir($args['jexampath']);
+            }
+
+            if(isset($args['match'])) {
+                try {
+                    if(@preg_match($args['match'], '') === false) {
+                        throw new Exception('Invalid format');
+                    }
+                }
+                catch(Exception $e) {
+                    fwrite($this->stderr, 'Error: Invalid RE as parameter of match=\'\'! PCRE format must be used.'.PHP_EOL);
+                    exit(INPUT_FILE_ERROR);
+                }
+               
+                Options::$matchRE = $args['match'];
             }
     
             if(isset($args['noclean'])) {
@@ -401,6 +419,10 @@
 
                     $test['folder'] = $dir; //Creating asociative array with test paths
                     $test['name'] = basename($src, '.src');
+                    if(preg_match(Options::$matchRE, $test['name']) == 0) {
+                        continue;
+                    }
+
                     $test['src'] = $src;
 
                     $this->total++;
