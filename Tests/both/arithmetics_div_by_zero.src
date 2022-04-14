@@ -1,0 +1,5 @@
+.ippcode22
+
+DEFVAR GF@a
+
+IDIV GF@a int@5 int@0

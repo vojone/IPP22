@@ -1,0 +1,25 @@
+.ippcode22
+
+PUSHS int@5
+
+PUSHS string@abc
+
+PUSHS nil@nil
+
+
+DEFVAR GF@cnt
+
+MOVE GF@cnt int@3
+
+DEFVAR GF@tmp
+
+LABEL cycle
+
+POPS GF@tmp
+
+WRITE GF@tmp
+
+
+ADD GF@cnt GF@cnt int@-1
+
+JUMPIFNEQ cycle int@0 GF@cnt

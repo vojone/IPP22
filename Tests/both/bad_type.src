@@ -1,0 +1,5 @@
+.ippcode22
+
+DEFVAR GF@a
+
+ADD GF@a int@5 string@5

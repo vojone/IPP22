@@ -1,0 +1,18 @@
+.ippcode22
+
+DEFVAR GF@a
+
+DEFVAR GF@b
+
+MOVE GF@a int@4
+
+MOVE GF@b int@-4
+
+
+MUL GF@a GF@b GF@a
+
+ADD GF@a GF@a GF@b
+
+IDIV GF@a GF@a GF@b
+
+WRITE GF@a

@@ -450,7 +450,9 @@
                             $gotPath = $test['folder'].$test['name'].'.'.Options::$tempXMLFileSuffix;
                         }
 
-                        $got = file_get_contents($gotPath);
+                        $got = "";
+                        if($ret === 0)
+                            $got = file_get_contents($gotPath);
 
                         HTML::printItemFailed('', $this->total, $test, $out, $got, $diff);
                         fwrite($this->stderr, "\nRESULT: FAILED\n");

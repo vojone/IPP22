@@ -1,0 +1,20 @@
+.ippcode22
+
+WRITE string@a\032b\010c
+
+WRITE int@1
+
+WRITE nil@nil
+
+WRITE bool@false
+
+DEFVAR GF@b
+
+MOVE GF@b int@5
+WRITE GF@b
+
+MOVE GF@b nil@nil
+WRITE GF@b
+
+MOVE GF@b string@string
+WRITE GF@b

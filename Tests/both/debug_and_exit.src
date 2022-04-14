@@ -1,0 +1,11 @@
+.ippcode22
+
+BREAK
+
+DEFVAR GF@ab
+
+MOVE GF@ab int@5
+
+DPRINT GF@ab
+
+EXIT int@22

@@ -1,0 +1,11 @@
+.ippcode22
+
+LABEL abc
+
+LABEL def
+
+
+WRITE string@ahoj
+
+
+LABEL abc

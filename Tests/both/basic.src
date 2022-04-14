@@ -1,0 +1,8 @@
+.ippcode22
+
+DEFVAR GF@ahoj
+
+MOVE GF@ahoj int@5
+
+WRITE string@ahoj\032světe
+WRITE GF@ahoj
