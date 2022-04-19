@@ -67,7 +67,7 @@ Následuje porovnání výsledku s očekávaným výstupem, které je provedeno 
 Následuje vypsání výsledku do výstupní zprávy, úklid a případně také rekurzivní volání metody run pro podadresáře.
 
 ## Výstupní zpráva
-Během testování je průběžně vytvářena také výstupní zpráva výpisem na standardní výstup, který zajišťuje třída HTML. Výstupní dokument je doplněn také o kód v JavaScriptu zajišťující funkci interaktivních prvků (skrytí úspěšným testů) a specifikaci vizuálního stylu v CSS, který dokument zpřehledňuje. Výsledky jednotlivých testů jsou uspořádány do seznamu, který je navíc organizován do obálek podle podadresářů (v případě, že je aktivována možnost --recusive). Po vypsání všech výsledků testů je nakonec vypsán souhrn a ten je pomocí CSS atributu order vložen na začátek seznamu.
+Během testování je průběžně vytvářena také výstupní zpráva výpisem na standardní výstup, který zajišťuje třída HTML. Výstupní dokument je doplněn také o kód v JavaScriptu zajišťující funkci interaktivních prvků (skrytí úspěšným testů) a specifikaci vizuálního stylu v CSS, který dokument zpřehledňuje. Výsledky jednotlivých testů jsou uspořádány do seznamu, který je navíc organizován do obálek podle podadresářů (v případě, že je aktivována možnost --recursive). Po vypsání všech výsledků testů je nakonec vypsán souhrn a ten je pomocí CSS atributu order vložen na začátek seznamu.
 Souběžně s výstupní zprávou v HTML jsou výsledky vypisovány také na standardní chybový výstup ve zjednodušené formě, aby bylo možné snadno kontrolovat průběh testování.
 
 

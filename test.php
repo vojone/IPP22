@@ -27,7 +27,6 @@
         public static $parseOnly = false;
         public static $intOnly = false;
 
-        //public static $jexamPath = 'jexamxml/'; //TODO
         public static $jexamPath = '/pub/courses/ipp/jexamxml/';
         public static $jexamJar = 'jexamxml.jar';
         public static $jexamOpts = 'options';

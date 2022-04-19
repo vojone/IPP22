@@ -1,0 +1,44 @@
+.ippcode22
+
+# It should compute factorial of given number
+
+
+DEFVAR GF@num
+DEFVAR GF@result
+DEFVAR GF@tmp
+
+# Check of the input
+
+LABEL new_num
+
+READ GF@num int
+
+JUMPIFEQ error GF@num nil@nil
+LT GF@tmp GF@num int@0
+JUMPIFEQ error GF@tmp bool@true 
+JUMPIFEQ zero GF@num int@0
+
+MOVE GF@result int@1
+
+LABEL again
+
+MUL GF@result GF@result GF@num
+
+SUB GF@num GF@num int@1
+
+JUMPIFNEQ again GF@num int@0
+
+WRITE GF@result
+WRITE string@\010
+
+JUMP new_num
+
+
+LABEL zero
+WRITE int@1
+WRITE string@\010
+JUMP new_num
+
+
+LABEL error
+WRITE string@Input\032error!
